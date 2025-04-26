@@ -1,6 +1,6 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from app.routers import users
+from app.routers import auth, repositories, records, processes
 
 app = FastAPI()
 
@@ -14,8 +14,7 @@ app.add_middleware(
 )
 
 # Include the users router
-app.include_router(users.router, prefix="/api", tags=["api"])
-
-@app.get("/")
-async def root():
-    return {"message": "Welcome to the Big Data Optimizer API"}
+app.include_router(auth.router, prefix="/api/auth", tags=["auth"])
+app.include_router(repositories.router, prefix="/api/respositories", tags=["repositories"])
+app.include_router(records.router, prefix="/api/records", tags=["records"])
+app.include_router(processes.router, prefix="/api/processes", tags=["processes"])
