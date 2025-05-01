@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from bson import ObjectId
-from typing import Optional, List
+from typing import Optional, List, Any
 from fastapi import UploadFile
 
 class Repository(BaseModel):
@@ -8,11 +8,18 @@ class Repository(BaseModel):
     name: str
     description: str
     url: str
-    type: str
-    prepared_data: Optional[bool] = None
+    type: Optional[str]
+    file_path: Optional[str] = None
+    data_ready: Optional[bool] = None
     file: Optional[UploadFile] = None
-    file_uploaded_at: Optional[int] = None
-    data_updated_at: Optional[int] = None
+    large_file: Optional[bool] = False
+    valid: Optional[bool] = None
+    file_size: Optional[Any] = None
+    original_data_size: Optional[int] = None
+    current_data_size: Optional[int] = None
+    data_created_at: Optional[Any] = None
+    data_updated_at: Optional[Any] = None
     parameters: Optional[List[dict]] = None
+    version: Optional[int]
     
     

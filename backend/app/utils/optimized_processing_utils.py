@@ -1,6 +1,5 @@
 import pandas as pd
 import modin.pandas as modin_pd
-import operator
 import multiprocessing as mp
 from app.general_utils import validate_columns, validate_column_types, validate_operator, validate_aggregation, OPERATORS, AGGREGATION_FUNCTIONS
 
@@ -17,7 +16,7 @@ def filter_chunk(chunk: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.DataF
     for condition in filters:
         op_func = OPERATORS[condition["operator"]]["action"]
 
-        if operator == "contains":
+        if op_func == "contains":
             chunk = chunk[op_func(chunk[condition["name"]].astype(str), value)]
         else:
             try:

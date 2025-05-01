@@ -57,13 +57,13 @@ def aggregate_data(df: pd.DataFrame, aggregation_columns: List[dict]) -> Dict[st
     """
     results = []
     for aggregation_column in aggregation_columns:
-      aggregation_result = {"property": aggregation_column["name"]}
-      
-      for aggregation in aggregation_column["aggregations"]:
-        try:
-            aggregation_result[aggregation] = AGGREGATION_FUNCTIONS[aggregation](df[aggregation_column["name"]])
-        except Exception as e:
-            print(f"Skipping column '{aggregation_column}'.'{aggregation}' due to error: {e}")
-      results.append(aggregation)
+        aggregation_result = {"property": aggregation_column["name"]}
+        
+        for aggregation in aggregation_column["aggregations"]:
+            try:
+                aggregation_result[aggregation] = AGGREGATION_FUNCTIONS[aggregation](df[aggregation_column["name"]])
+            except Exception as e:
+                print(f"Skipping column '{aggregation_column}'.'{aggregation}' due to error: {e}")
+        results.append(aggregation)
 
     return results

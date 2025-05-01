@@ -1,6 +1,7 @@
 from fastapi import Request
 from typing import List, Any
 from app.models.process import Process, ProcessName
+import operator
 
 OPERATORS = {
     "==": {"action": operator.eq, "types": ["int", "float", "str", "number"]},
