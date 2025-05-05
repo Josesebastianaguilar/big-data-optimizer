@@ -6,6 +6,7 @@ from pathlib import Path
 from bson.objectid import ObjectId
 from fastapi import UploadFile
 from dotenv import load_dotenv
+from datetime import datetime
 import pandas as pd
 import mimetypes
 import logging
@@ -22,8 +23,9 @@ async def store_repository_records(repository: Repository, parameters: List[dict
             logging.error(f"Error deleting existing records for repository {repository['_id']}: {e}")
             raise ValueError(f"Error deleting existing records for repository {repository['_id']}: {e}")
     try:
+        now = datetime.now()
         records_data = csv_data.to_dict(orient="records")
-        records = [{"repository": ObjectId(repository['_id']), "data": record} for record in records_data]
+        records = [{"repository": ObjectId(repository['_id']), "data": record, "created_at": now, "updated_at": now, version: 0} for record in records_data]
         num_records = len(records)
         
         await db["records"].insert_many(records)

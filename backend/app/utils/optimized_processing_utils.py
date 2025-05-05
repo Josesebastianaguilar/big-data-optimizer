@@ -1,7 +1,26 @@
+from app.general_utils import validate_columns, validate_column_types, validate_operator, validate_aggregation, OPERATORS, AGGREGATION_FUNCTIONS
 import pandas as pd
 import modin.pandas as modin_pd
 import multiprocessing as mp
-from app.general_utils import validate_columns, validate_column_types, validate_operator, validate_aggregation, OPERATORS, AGGREGATION_FUNCTIONS
+import asyncio
+
+
+def map_groupped_records(grouped_data: pd.core.groupby.generic.DataFrameGroupBy, map_property):
+    """
+    Map grouped records to a dictionary with group keys and their corresponding values.
+    Parameters:
+    - grouped_data: pd.core.groupby.generic.DataFrameGroupBy - The grouped DataFrame.
+    - map_property: str - The property to map.
+    Returns:
+    - dict: A dictionary where keys are group keys and values are lists of mapped property values.
+    """
+    group_mapping = {}
+
+    for group_key, group_df in grouped:
+        # Extract the values of the property column for each group
+        group_mapping[group_key] = group_df[map_property].tolist()
+
+    return group_mapping
 
 
 def filter_chunk(chunk: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.DataFrame:
@@ -27,7 +46,7 @@ def filter_chunk(chunk: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.DataF
     return chunk
 
 
-def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]], num_processes=1) -> pd.DataFrame:
+async def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]], num_processes=1) -> pd.DataFrame:
     """
     Filter a DataFrame using multiple conditions in parallel.
     Parameters:
@@ -38,10 +57,8 @@ def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]], num_processes=1
     - pd.DataFrame: Filtered DataFrame.
     """
     chunks = [df.iloc[i::num_processes] for i in range(num_processes)]
-    args = [(chunk, filters) for chunk in chunks]
-
-    with mp.Pool(processes=num_processes) as pool:
-        results = pool.starmap(filter_chunk, args)
+    
+    await asyncio.gather(*[asyncio.to_thread(filter_chunk, chunk, filters) for chunk in chunks])
 
     filtered_df = pd.concat(results)
 

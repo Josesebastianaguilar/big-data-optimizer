@@ -4,6 +4,21 @@ from typing import List, Any
 from collections import defaultdict
 from app.general_utils import validate_columns, validate_column_types, validate_operator, validate_aggregation, OPERATORS, AGGREGATION_FUNCTIONS
 
+def map_groupped_records(groupped_data: dict, map_property: str) -> dict:
+    """
+    Map grouped records to a dictionary with group keys and their corresponding values.
+    Parameters:
+    - groupped_data: dict - The grouped data.
+    - map_property: str - The property to map.
+    Returns:
+    - dict: A dictionary where keys are group keys and values are lists of mapped property values.
+    """
+    group_mapping = {}
+    for group_key in groupped_data.keys():
+        group_mapping[group_key] = [record[map_property] for record in groupped_data[group_key]]
+    
+    return group_mapping
+
 def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.DataFrame:
     """
     Filter a DataFrame using multiple conditions.

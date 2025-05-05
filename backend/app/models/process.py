@@ -21,7 +21,7 @@ class ProcessingStatus(str, Enum):
 class ProcessingMetrics(BaseModel):
   id: Optional[str]
   task_process: ProcessName
-  all_processes: List[ProcessName]
+  actions: List[ProcessName]
   status: ProcessingStatus
   repository: ObjectId
   process_id: ObjectId
@@ -33,7 +33,7 @@ class ProcessingMetrics(BaseModel):
   duration: Optional[Any]
   input_data_size: Optional[int]
   output_data_size: Optional[int]
-  metrics: Optional[dict]
+  metrics: Optional[Any]
   results: Optional[Any]
   errors: Optional[Any]
   created_at: Optional[Any]

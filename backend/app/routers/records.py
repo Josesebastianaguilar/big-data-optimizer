@@ -36,7 +36,7 @@ async def update_record(record: Record, current_user: dict = Depends(get_current
         validate_permissions_and_repository(current_user, repository)
         now = datetime.now()
 
-        await db["records"].update_one({"_id": ObjectId(record.id)}, {"$set": {**record.dict(), "updated_at": now}})
+        await db["records"].update_one({"_id": ObjectId(record.id)}, {"$set": {**record.dict(), "updated_at": now, version: repository.version + 1}})
         
         await update_repository_info(repository)
     
@@ -58,7 +58,7 @@ async def create_record(record: Record, current_user: dict = Depends(get_current
         validate_permissions_and_repository(current_user, repository)
         now = datetime.now()
 
-        new_record = await db["records"].insert_one({**record.dict(), "created_at": now, "updated_at": now})
+        new_record = await db["records"].insert_one({**record.dict(), "created_at": now, "updated_at": now, version: repository.version + 1})
 
         await update_repository_info(repository)
     

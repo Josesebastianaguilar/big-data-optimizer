@@ -3,7 +3,7 @@ from app.utils.auth_utils import get_current_user
 from app.models.record import Record
 from app.models.process import Process, ProcessName, Trigger, ProcessingStatus
 from app.utils.general_utils import get_query_params, validate_processes, validate_columns, validate_operator, validate_aggregation, validate_columns_types
-from app.utils.processes_utils import process_sequential_data
+from app.utils.user_initiated_processing_utils import start_user_initiated_process
 from app.database import db
 from bson.objectid import ObjectId
 from datetime import datetime
@@ -70,19 +70,19 @@ async def process_data(request: Request, current_user: dict = Depends(get_curren
     process_id = ObjectId()
 
     if is_active_filtering_processing:
-        base_filter_process = {"parameters": filter_conditions, all_processes: all_processes, "task_process": ProcessName.FILTER, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger, "created_at": datetime.now(), "updated_at": datetime.now()}
+        base_filter_process = {"parameters": filter_conditions, actions: all_processes, "task_process": ProcessName.FILTER, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger.USER, "created_at": datetime.now(), "updated_at": datetime.now(), iteration: 1, "repository_version": repository["version"]}
 
         processes_non_optimized.append({**base_filter_process, "optimized": False})
         processes_optimized.append({**base_filter_process, "optimized": True})
     
     if is_active_grouping_processing:
-        base_group_process = {"parameters": body["processes"][ProcessName.GROUP]["columns"], all_processes: all_processes, "task_process": ProcessName.GROUP, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger, "created_at": datetime.now(), "updated_at": datetime.now()}
+        base_group_process = {"parameters": body["processes"][ProcessName.GROUP]["columns"], actions: all_processes, "task_process": ProcessName.GROUP, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger.USER, "created_at": datetime.now(), "updated_at": datetime.now(), iteration: 1, "repository_version": repository["version"]}
 
         processes_non_optimized.append({**base_group_process, "optimized": False})
         processes_optimized.append({**base_group_process, "optimized": True})
 
     if is_active_aggregation_processing:
-        base_aggregation_process = {"parameters": body["processes"][ProcessName.AGGREGATION]["columns"], all_processes: all_processes, "task_process": ProcessName.AGGREGATION, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger, "created_at": datetime.now(), "updated_at": datetime.now()}
+        base_aggregation_process = {"parameters": body["processes"][ProcessName.AGGREGATION]["columns"], actions: all_processes, "task_process": ProcessName.AGGREGATION, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger.USER, "created_at": datetime.now(), "updated_at": datetime.now(), iteration: 1, "repository_version": repository["version"]}
 
         processes_non_optimized.append({**base_aggregation_process, "optimized": False})
         processes_optimized.append({**base_aggregation_process, "optimized": True})
@@ -90,7 +90,7 @@ async def process_data(request: Request, current_user: dict = Depends(get_curren
     try:
         await db["processes"].insert_many(processes_non_optimized + processes_optimized)
         background_tasks = BackgroundTasks()
-        background_tasks.add_task(process_sequential_data, process_id, repository["_id"], all_processes)
+        background_tasks.add_task(start_user_initiated_process, process_id, repository["_id"], all_processes)
 
         return {"message": "Processes started successfully", "process_id": str(process_id)}
     except Exception as e:

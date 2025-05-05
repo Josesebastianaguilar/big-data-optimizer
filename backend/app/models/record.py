@@ -8,3 +8,4 @@ class Record(BaseModel):
     data: dict
     created_at: Optional[Any]
     updated_at: Optional[Any]
+    version: Optional[int] = None
