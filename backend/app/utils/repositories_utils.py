@@ -176,3 +176,17 @@ async def upsert_repository(repository: Repository, current_user: dict) -> dict:
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error updating repository: {str(e)}")
+        
+async def get_repository(repository_id: str) -> dict:
+    """
+    Validate if the repository exists and is not processed.
+    """
+    repository = await db["repositories"].find_one({"_id": ObjectId(repository_id)})
+    
+    if not repository:
+        raise HTTPException(status_code=404, detail="Repository not found")
+    
+    if repository.get("data_ready") is not True:
+        raise HTTPException(status_code=500, detail="Data has been not prepared yet")
+    
+    return repository

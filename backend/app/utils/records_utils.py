@@ -21,3 +21,4 @@ async def update_repository_info(repository: Any):
     repository_data = {"current_data_size": records_count, "data_updated_at": now "updated_at": now, verion: repository["version"] + 1}
     
     await db["repositories"].update_one({"_id": repository["_id"]}, {"$set": repository_data})
+    
