@@ -36,6 +36,7 @@ class ProcessingMetrics(BaseModel):
   metrics: Optional[Any]
   results: Optional[Any]
   errors: Optional[Any]
+  validated: Optional[bool] = False
   created_at: Optional[Any]
   updated_at: Optional[Any]
   iteration: Optional[int]

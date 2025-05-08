@@ -1,5 +1,5 @@
 from bson.objectid import ObjectId
-from app.models.process import Process, ProcessingStatus, ProcessName
+from app.models.process import Process, ProcessingStatus, ProcessName, Trigger
 from typing import List
 from app.database import db
 from app.utils.monitor_resources_utils import monitor_resources, get_metrics, dequeue_measurements, get_process_times
@@ -198,7 +198,7 @@ async def prepare_cron_initiated_processes():
     """
     try:
       repositories = await db["repositories"].find({"data_ready": True}).to_list(length=None)
-      if not repositories:
+      if len(repositories) == 0:
         logging.info("No repositories found with data ready. Skipping cron initiated process.")
         return
       
@@ -242,7 +242,8 @@ async def prepare_cron_initiated_processes():
                 "created_at": datetime.now(),
                 "updated_at": datetime.now(),
                 "optimized": process["optimized"],
-                "iteration": i + 1
+                "iteration": i + 1,
+                "validated": False
               })
             await db["processes"].insert_many(cron_processes)
             logging.info(f"Inserted {len(cron_processes)} cron processes for repository {repository['_id']} and process_id {process_id} at iteration {i + 1}. Starting processing.")

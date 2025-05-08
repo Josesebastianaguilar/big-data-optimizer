@@ -56,19 +56,19 @@ async def process_data(request: Request, current_user: dict = Depends(get_curren
     process_id = ObjectId()
 
     if is_active_filtering_processing:
-        base_filter_process = {"parameters": filter_conditions, "actions": all_processes, "task_process": ProcessName.FILTER, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger.USER, "created_at": datetime.now(), "updated_at": datetime.now(), "iteration": 1, "repository_version": repository["version"]}
+        base_filter_process = {"parameters": filter_conditions, "actions": all_processes, "task_process": ProcessName.FILTER, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger.USER, "created_at": datetime.now(), "updated_at": datetime.now(), "iteration": 1, "repository_version": repository["version"], "validated": False}
 
         processes_non_optimized.append({**base_filter_process, "optimized": False})
         processes_optimized.append({**base_filter_process, "optimized": True})
     
     if is_active_grouping_processing:
-        base_group_process = {"parameters": body["processes"][ProcessName.GROUP]["columns"], "actions": all_processes, "task_process": ProcessName.GROUP, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger.USER, "created_at": datetime.now(), "updated_at": datetime.now(), "iteration": 1, "repository_version": repository["version"]}
+        base_group_process = {"parameters": body["processes"][ProcessName.GROUP]["columns"], "actions": all_processes, "task_process": ProcessName.GROUP, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger.USER, "created_at": datetime.now(), "updated_at": datetime.now(), "iteration": 1, "repository_version": repository["version"], "validated": False}
 
         processes_non_optimized.append({**base_group_process, "optimized": False})
         processes_optimized.append({**base_group_process, "optimized": True})
 
     if is_active_aggregation_processing:
-        base_aggregation_process = {"parameters": body["processes"][ProcessName.AGGREGATION]["columns"], "actions": all_processes, "task_process": ProcessName.AGGREGATION, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger.USER, "created_at": datetime.now(), "updated_at": datetime.now(), "iteration": 1, "repository_version": repository["version"]}
+        base_aggregation_process = {"parameters": body["processes"][ProcessName.AGGREGATION]["columns"], "actions": all_processes, "task_process": ProcessName.AGGREGATION, "status": ProcessingStatus.PENDING, "repository": repository["_id"], "process_id": process_id, "trigger_type": Trigger.USER, "created_at": datetime.now(), "updated_at": datetime.now(), "iteration": 1, "repository_version": repository["version"], "validated": False}
 
         processes_non_optimized.append({**base_aggregation_process, "optimized": False})
         processes_optimized.append({**base_aggregation_process, "optimized": True})
@@ -119,7 +119,8 @@ async def iterate_process(process_id: str, request: Request, current_user: dict 
             "created_at": datetime.now(),
             "updated_at": datetime.now(),
             "optimized": process["optimized"],
-            "iteration": process["iteration"] + 1
+            "iteration": process["iteration"] + 1,
+            "validated": False
         })
     try:
         await db["processes"].insert_many(new_iteration_processes)

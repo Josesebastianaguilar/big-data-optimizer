@@ -1,5 +1,5 @@
 from bson.objectid import ObjectId
-from app.models.process import Process, ProcessingStatus, ProcessName
+from app.models.process import Process, ProcessingStatus, ProcessName, Trigger
 from fastapi import BackgroundTasks
 from typing import List
 from app.database import db
