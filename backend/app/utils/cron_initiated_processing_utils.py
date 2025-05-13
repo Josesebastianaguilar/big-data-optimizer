@@ -180,7 +180,7 @@ async def start_cron_initiated_process(process_id: ObjectId, repository_id: Obje
   Start a cron initiated process for a given repository and process_id.
   """
   records = await db["records"].find({"repository": repository_id}).to_list(length=None)
-  processes = await db["processes"].find({"process_id": process_id, "trigger_type": Trigger.CRON, "iteration": iteration, "status": ProcessingStatus.PENDING}).to_list(length=None)
+  processes = await db["processes"].find({"process_id": process_id, "trigger_type": Trigger.SYSTEM, "iteration": iteration, "status": ProcessingStatus.PENDING}).to_list(length=None)
   optimized_processes = [process for process in processes if process["optimized"] is True]
   non_optimized_processes = [process for process in processes if process["optimized"] is False]
   df = pd.DataFrame([{"_id": record["_id"], **record["data"]} for record in records])
@@ -208,7 +208,7 @@ async def prepare_cron_initiated_processes():
         if len(processes) == 0:
           logging.info(f"Repository {repository['_id']} has no completed processes. Skipping.")
           continue
-        cron_processes = [process for process in processes if process["trigger_type"] is Trigger.CRON]
+        cron_processes = [process for process in processes if process["trigger_type"] is Trigger.SYSTEM]
         
         if len(cron_processes) != 0:
           logging.info(f"Repository {repository['_id']} has already cron processes. skipping.")
@@ -238,7 +238,7 @@ async def prepare_cron_initiated_processes():
                 "status": ProcessingStatus.PENDING,
                 "repository": repository["_id"],
                 "process_id": process_id,
-                "trigger_type": Trigger.CRON,
+                "trigger_type": Trigger.SYSTEM,
                 "created_at": datetime.now(),
                 "updated_at": datetime.now(),
                 "optimized": process["optimized"],

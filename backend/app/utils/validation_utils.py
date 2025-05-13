@@ -127,7 +127,7 @@ async def init_validation():
     Process data for a given collection and queries.
     """
     try:
-      await validate_complete_processes(Trigger.CRON)
+      await validate_complete_processes(Trigger.SYSTEM)
       await validate_complete_processes(Trigger.USER)
     except Exception as e:
       logging.error(f"Error in validation: {e}")

@@ -19,7 +19,7 @@ class ProcessingStatus(str, Enum):
   FAILED = "failed"
 
 class ProcessingMetrics(BaseModel):
-  id: Optional[str]
+  _id: Optional[str]
   task_process: ProcessName
   actions: List[ProcessName]
   status: ProcessingStatus
@@ -37,6 +37,7 @@ class ProcessingMetrics(BaseModel):
   results: Optional[Any]
   errors: Optional[Any]
   validated: Optional[bool] = False
+  valid: Optional[bool]
   created_at: Optional[Any]
   updated_at: Optional[Any]
   iteration: Optional[int]
