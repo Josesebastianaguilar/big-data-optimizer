@@ -4,13 +4,13 @@ import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ConfirmationModal from "@/components/ConfirmationModal";
-import { FaArchive, FaChartBar, FaSearch, FaEdit, FaTrash } from "react-icons/fa";
+import { FaArchive, FaCogs, FaSearch, FaEdit, FaTrash, FaList, FaPlus, FaShareSquare, FaProjectDiagram } from "react-icons/fa";
 import Link from "next/link";
 
 export default function RepositoriesPage() {
   const [repositories, setRepositories] = useState([
     {
-      id: 1,
+      _id: 1,
       name: "Repository A",
       url: "https://example.com/repo-a",
       original_data_size: "500 MB",
@@ -18,7 +18,7 @@ export default function RepositoriesPage() {
       parameters: "filter=active",
     },
     {
-      id: 2,
+      _id: 2,
       name: "Repository B",
       url: "https://example.com/repo-b",
       original_data_size: "1 GB",
@@ -26,7 +26,7 @@ export default function RepositoriesPage() {
       parameters: "group=region",
     },
     {
-      id: 3,
+      _id: 3,
       name: "Repository C",
       url: "https://example.com/repo-c",
       original_data_size: "2 GB",
@@ -45,7 +45,7 @@ export default function RepositoriesPage() {
 
   const confirmDelete = () => {
     setRepositories((prev) =>
-      prev.filter((repo) => repo.id !== repositoryToDelete.id)
+      prev.filter((repo) => repo._id !== repositoryToDelete._id)
     );
     setShowModal(false);
     setRepositoryToDelete(null);
@@ -58,24 +58,25 @@ export default function RepositoriesPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-between bg-gray-50 text-gray-800">
-      <Header />
+      <Header backgroundColor="bg-sky-600" />
       <div className="w-full max-w-6xl px-4">
         <div className="flex mt-4 sm:mt-0 justify-between items-center mb-6">
-          <h1 className="text-3xl font-bold text-gray-800">
-            <FaArchive className="w-8 h-8 text-blue-600 inline mr-2" />
-            Repositories
-          </h1>
           <Link
             href="/repositories/create"
-            className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
+            className="bg-sky-600 hover:bg-sky-700 text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-700 focus:ring-offset-2"
           >
-            Create Repository
+            <FaPlus className="mr-2 inline" />
+            <span>New Repository</span>
           </Link>
+          <h1 className="text-3xl font-bold text-gray-800">
+            <FaArchive className="w-8 h-8 text-sky-600 inline mr-2" />
+            Repositories
+          </h1>
         </div>
         <div className="overflow-x-auto w-full mb-4 sm:mb-0">
           <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
             <thead>
-              <tr className="bg-blue-600 text-white">
+              <tr className="bg-sky-600 text-white">
                 <th className="px-6 py-3 text-left text-sm font-semibold">Name</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold">URL</th>
                 <th className="px-6 py-3 text-left text-sm font-semibold">
@@ -95,16 +96,16 @@ export default function RepositoriesPage() {
             <tbody>
               {repositories.map((repo, index) => (
                 <tr
-                  key={repo.id}
+                  key={repo._id}
                   className={`${
                     index % 2 === 0 ? "bg-gray-50" : "bg-white"
                   } hover:bg-gray-100`}
                 >
                   <td className="px-6 py-4 text-sm text-gray-800">{repo.name}</td>
                   <td className="px-6 py-4 text-sm text-blue-600">
-                    <a href={repo.url} target="_blank" rel="noopener noreferrer">
-                      {repo.url}
-                    </a>
+                    {repo.url && <a href={repo.url} target="_blank" rel="noopener noreferrer no-underline text-slate-600">
+                      <FaShareSquare className="w-4 h-4 text-sky-600" />
+                    </a>}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-800">
                     {repo.original_data_size}
@@ -117,29 +118,35 @@ export default function RepositoriesPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-800 space-x-2">
                     <Link
-                      href={`/processes/repository/${repo.id}`}
-                      className="inline-block bg-gray-500 text-white py-1 px-3 rounded-md hover:bg-gray-600"
+                      href={`/processes?repository=${repo._id}`}
+                      className="inline-block"
                     >
-                      <FaChartBar className="w-4 h-4" />
+                      <FaProjectDiagram className="w-4 h-4 text-orange-500 hover:text-orange-600" />
                     </Link>
                     <Link
-                      href={`/repositories/show/${repo.id}`}
-                      className="inline-block bg-blue-500 text-white py-1 px-3 rounded-md hover:bg-blue-600"
+                      href={`/records?repository${repo._id}`}
+                      className="inline-block"
                     >
-                      <FaSearch className="w-4 h-4" />
+                      <FaList className="w-4 h-4 text-purple-500 hover:text-purple-600" />
                     </Link>
                     <Link
-                      href={`/repositories/edit/${repo.id}`}
-                      className="inline-block bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600"
+                      href={`/repositories/show/${repo._id}`}
+                      className="inline-block"
                     >
-                      <FaEdit className="w-4 h-4" />
+                      <FaSearch className="w-4 h-4 text-stone-700 hover:text-stone-800" />
+                    </Link>
+                    <Link
+                      href={`/repositories/edit/${repo._id}`}
+                      className="inline-block"
+                    >
+                      <FaEdit className="w-4 h-4 text-green-500 hover:text-green-600" />
                     </Link>
                     <Link
                       href=""
                       onClick={() => handleDeleteClick(repo)}
-                      className="inline-block bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600"
+                      className="inline-block"
                     >
-                      <FaTrash className="w-4 h-4" />
+                      <FaTrash className="w-4 h-4 text-red-500 hover:text-red-600" />
                     </Link>
                   </td>
                 </tr>
@@ -158,7 +165,7 @@ export default function RepositoriesPage() {
         onCancel={cancelDelete}
       />
 
-      <Footer />
+      <Footer backgroundColor="bg-sky-600" />
     </div>
   );
 }

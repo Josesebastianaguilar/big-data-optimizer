@@ -3,7 +3,7 @@
 import { useState } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { FaChevronDown, FaChevronRight, FaSearch, FaCheckCircle, FaWindowClose, FaRedo, FaArrowLeft, FaChartBar } from "react-icons/fa"; 
+import { FaChevronDown, FaChevronRight, FaSearch, FaCheckCircle, FaWindowClose, FaRedo, FaArrowLeft, FaPlus, FaChartBar, FaArchive } from "react-icons/fa"; 
 import Link from "next/link";
 
 // Mock repository info
@@ -96,18 +96,18 @@ export default function ProcessesListPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
       <Header />
-      <div className="max-w-7xl mx-auto w-full px-4 mb-6">
-        <div className="relative">
-          <div className="absolute top-4">
+      <div className="max-w-7xl mx-auto w-full px-4">
+        <div className="flex justify-between items-center mt-4">
+          <div>
             <Link
-              href={`/processes/create/${repository.id}`}
-              className="bg-gray-500  hover:bg-gray-600  text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              href={`/processes/create?repository=${repository.id}`}
+              className="bg-blue-600 hover:bg-blue-700  text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
             >
-               <FaChartBar className="w-4 h-4 inline mr-2" />
-              Create Process
+               <FaPlus className="mr-2 inline" />
+              New Process
             </Link>
           </div>
-          <div className="absolute top-4 right-0">
+          <div>
             <Link
               href="/repositories"
               className="inline-block bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
@@ -117,10 +117,10 @@ export default function ProcessesListPage() {
           </div>            
         </div>
       </div>
-      <div className="max-w-7xl mx-auto w-full px-4 py-8">
+      <div className="max-w-7xl mx-auto w-full px-4 pt-2 pb-4">
         {/* Repository Info */}
         <div className="mb-8 p-6 bg-white rounded-lg shadow">
-          <h2 className="text-2xl font-bold mb-2">{repository.name}</h2>
+          <h2 className="text-2xl font-bold mb-2"><FaArchive className="w-8 h-8 text-blue-600 inline mr-2" /> {repository.name}</h2>
           <p className="mb-1">{repository.description}</p>
           <p className="mb-1">
             <strong>URL:</strong>{" "}
@@ -135,7 +135,7 @@ export default function ProcessesListPage() {
 
         {/* Processes Table with Accordions */}
         <div className="bg-white rounded-lg shadow p-4">
-          <h3 className="text-xl font-bold mb-4">Processes</h3>
+          <h3 className="text-xl font-bold mb-4"><FaChartBar className="w-4 h-4 inline" /> Processes</h3>
           {mockProcesses.length === 0 && (
             <p className="text-gray-500">No processes found.</p>
           )}
@@ -171,7 +171,7 @@ export default function ProcessesListPage() {
                       </span>
                       {trigger === 'USER' && (
                         <span className="flex-end items-center inline">
-                            <FaRedo className="text-green-600"/>
+                            <FaRedo className="text-yellow-600"/>
                         </span>
                       )}
                     </button>

@@ -3,15 +3,13 @@
 import { useParams } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { FaArrowLeft, FaEdit } from "react-icons/fa";
+import { FaArrowLeft, FaEdit, FaArchive, FaList, FaProjectDiagram, FaShareSquare } from "react-icons/fa";
 import Link from "next/link";
 
 export default function ViewRepositoryPage() {
-  const { id } = useParams();
-
   // Mock repository data
   const repository = {
-    id,
+    _id: 1,
     name: "Repository A",
     description: "This is a sample repository.",
     url: "https://example.com/repo-a",
@@ -32,31 +30,41 @@ export default function ViewRepositoryPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
-      <Header />
+      <Header backgroundColor="bg-sky-600"/>
       <div className="flex-grow my-4 flex items-center justify-center px-4">
         {/* Top Buttons */}
         <div className="max-w-3xl w-full bg-white p-6 shadow-md rounded-lg">
-          <div className="relative">
-            <div className="absolute top-4 left-4">
-              <Link
-                href={`/repositories/edit/${repository.id}`}
-                className="inline-block bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:ring-offset-2"
-              >
-                <FaEdit className="w-4 h-4" />
-              </Link>
-            </div>
-            <div className="absolute top-4 right-4">
-              <Link
-                href="/repositories"
-                className="inline-block bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
-              >
-                <FaArrowLeft className="w-4 h-4" />
-              </Link>
-            </div>            
+          <div className="flex justify-end items-center mb-2">
+            <Link
+              href={`/processes?repository=${repository._id}`}
+              className="inline-block bg-orange-500 text-white py-2 mr-2 px-4 rounded-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2"
+            >
+              <FaProjectDiagram className="w-4 h-4" />
+            </Link>
+            <Link
+              href={`/records?repository${repository._id}`}
+              className="inline-block bg-purple-500 text-white py-2 mr-2 px-4 rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2"
+            >
+              <FaList className="w-4 h-4" />
+            </Link>
+            <Link
+              href={`/repositories/edit/${repository._id}`}
+              className="inline-block bg-green-500 text-white py-2 px-4 mr-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+            >
+              <FaEdit className="w-4 h-4" />
+            </Link>
+            <Link
+              href="/repositories"
+              className="inline-block bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-600 focus:ring-offset-2"
+            >
+              <FaArrowLeft className="w-4 h-4" />
+            </Link>           
           </div>
 
           {/* Content */}
-          <h1 className="text-3xl font-bold mb-8 text-center">View Repository</h1>
+          <h1 className="text-3xl font-bold mb-8 text-center">
+             <FaArchive className="w-8 h-8 text-sky-600 inline mr-2" /> Repository
+             </h1>
           <div className="space-y-6">
             <p className="text-lg">
               <strong>Name:</strong> {repository.name}
@@ -66,14 +74,14 @@ export default function ViewRepositoryPage() {
             </p>
             <p className="text-lg">
               <strong>URL:</strong>{" "}
-              <a
+              {repository.url && <a
                 href={repository.url}
                 target="_blank"
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
+                className="no-underline"
               >
-                {repository.url}
-              </a>
+                <FaShareSquare className="w-4 h-4 text-sky-600 inline" />
+              </a>}
             </p>
             {repository.large_file ? (
               <p className="text-lg">
@@ -115,7 +123,7 @@ export default function ViewRepositoryPage() {
           </div>
         </div>
       </div>
-      <Footer />
+      <Footer backgroundColor="bg-sky-600" />
     </div>
   );
 }

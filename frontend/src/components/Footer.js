@@ -1,6 +1,6 @@
-export default function Footer() {
+export default function Footer({backgroundColor}) {
   return (
-    <footer className="w-full bg-gray-800 text-white py-6 text-center">
+    <footer className={"w-full text-white py-6 text-center " + (backgroundColor || "bg-gray-800")}>
       <p>
         © {new Date().getFullYear()} Big Data Optimizer. All rights reserved.
       </p>

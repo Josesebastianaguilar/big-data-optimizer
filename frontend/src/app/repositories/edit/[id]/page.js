@@ -5,7 +5,7 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
-import { FaArrowLeft } from "react-icons/fa";
+import { FaArrowLeft, FaArchive } from "react-icons/fa";
 import Link from "next/link";
 
 export default function EditRepositoryPage() {
@@ -43,26 +43,26 @@ export default function EditRepositoryPage() {
 
   return (
      <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
-      <Header />
+      <Header backgroundColor="bg-sky-600"/>
       <div className="flex-grow my-4 flex items-center justify-center px-4">
         <div className="max-w-2xl w-full bg-white p-6 shadow-md rounded-lg">
-           <div className="relative">
-            <div className="absolute top-4 right-4">
+           <div className="flex justify-end items-center">
+            <div>
               <Link
                 href="/repositories"
-                className="inline-block bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+                className="inline-block bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
               >
                 <FaArrowLeft className="w-4 h-4" />
               </Link>
             </div>            
           </div>
           <h1 className="text-3xl font-extrabold text-gray-900 text-center mb-6">
-            Edit Repository
+            <FaArchive className="w-8 h-8 text-sky-600 inline mr-2" /> Edit Repository
           </h1>
           <RepositoryForm type="edit" initialData={repository} onSubmit={handleUpdate} />
         </div>
       </div>
-      <Footer />
+      <Footer backgroundColor="bg-sky-600"/>
     </div>
   );
 }
