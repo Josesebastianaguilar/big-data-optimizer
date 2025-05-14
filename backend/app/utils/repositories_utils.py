@@ -1,4 +1,4 @@
-from fastapi import Request, Response, BackgroundTasks, HTTPException
+from fastapi import Request, Response, HTTPException
 from typing import List, Any
 from app.database import db
 from app.models.repository import Repository
@@ -11,6 +11,7 @@ import pandas as pd
 import mimetypes
 import logging
 import os
+import asyncio
 
 load_dotenv()
 logging.basicConfig(filename=os.getenv("ERROR_LOG_PATH", "error.log"), level=logging.ERROR)
@@ -133,9 +134,6 @@ async def upsert_repository(repository: Repository, current_user: dict) -> dict:
     """Upsert a repository."""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Not enough permissions")
-    
-    if hasattr(repository, 'file') or (repository.large_file is True and repository.file_path):
-        background_tasks = BackgroundTasks()
 
     if repository["_id"] is None:
         if not hasattr(repository, 'file') and repository.large_file is not True:
@@ -148,7 +146,7 @@ async def upsert_repository(repository: Repository, current_user: dict) -> dict:
         try:
             result = await db["repositories"].insert_one(repository)
             repository["_id"] = result.inserted_id
-            background_tasks.add_task(process_file, repository)
+            asyncio.create_task(process_file, repository)
 
             return Response(status_code=201, content={"id": str(repository["_id"]), "message": "Repository created successfully"})
         except Exception as e:
@@ -170,7 +168,7 @@ async def upsert_repository(repository: Repository, current_user: dict) -> dict:
             result = await db["repositories"].update_one({"_id": repository["_id"]}, {"$set": repository_data})
             
             if hasattr(repository, 'file') or repository.large_file is True:
-                background_tasks.add_task(process_file, repository, True)
+                asyncio.create_task(process_file, repository, True)
             
             return Response(status_code=200, content={"id": str(repository["_id"]), "message": "Repository updated successfully"})
 

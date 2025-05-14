@@ -1,6 +1,5 @@
 from bson.objectid import ObjectId
 from app.models.process import Process, ProcessingStatus, ProcessName, Trigger
-from fastapi import BackgroundTasks
 from typing import List
 from app.database import db
 from app.utils.monitor_resources_utils import monitor_resources, get_metrics, dequeue_measurements, get_process_times
