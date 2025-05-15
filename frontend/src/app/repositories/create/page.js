@@ -21,12 +21,13 @@ export default function CreateRepositoryPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
-      <Header backgroundColor="bg-sky-600"/>
-      <div className="flex-grow my-4 flex items-center justify-center px-4">
+      <Header backgroundColor="bg-sky-600" title="Repositories"/>
+      <main className="flex-grow my-4 flex items-center justify-center px-4">
         <div className="max-w-2xl w-full bg-white p-6 shadow-md rounded-lg">
           <div className="flex justify-end items-center">
             <div>
               <Link
+                title="Go Back"
                 href="/repositories"
                 className="inline-block bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
               >
@@ -39,7 +40,7 @@ export default function CreateRepositoryPage() {
           </h1>
           <RepositoryForm type="create" onSubmit={handleCreate} />
         </div>
-      </div>
+      </main>
       <Footer backgroundColor="bg-sky-600"/>
     </div>
   );

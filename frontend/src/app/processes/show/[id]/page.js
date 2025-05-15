@@ -3,7 +3,7 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { FaArrowLeft, FaRedo, FaSearch, FaChartBar } from "react-icons/fa";
+import { FaArrowLeft, FaRedo, FaSearch, FaChartBar, FaPlus } from "react-icons/fa";
 import { Line, Doughnut } from "react-chartjs-2";
 import {
   Chart as ChartJS,
@@ -27,7 +27,7 @@ const process = {
   process_id: "P-001",
   optimized: true,
   repository: 1,
-  trigger_type: "SYSTEM",
+  trigger_type: "USER",
   start_time: "2024-05-01 10:00",
   end_time: "2024-05-01 10:30",
   duration: "30m",
@@ -131,37 +131,38 @@ export default function ProcessShowView() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
-      <Header />
+      <Header backgroundColor="bg-orange-500" title="Processes"/>
       <div className="max-w-3xl mx-auto w-full px-4 py-8">
-        <div className="relative w-full my-6">
-          {process.trigger_type === 'USER' && <div className="absolute top-4 left-4">
-            <button
-              className="cursor-pointer bg-green-500  hover:bg-green-600  text-white py-1 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2"
-            >
-                <FaRedo className="w-4 h-4 inline mr-2" />
-              Iterate
-            </button>
-          </div>}
-          <div className="absolute top-5 xs: left-1/3 sm:left-2/5 xs:w-1/3 sm:w-auto">
+        <div className="bg-white rounded-lg shadow p-6">
+          <div className="flex justify-end items-center mb-2">
             <Link
-              href={`/processes/create/${process.repository}`}
-              className="bg-gray-500  hover:bg-gray-600  text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
+              title="New Process"
+              href={`/processes/create?repository=${process.repository}`}
+              className="bg-blue-500  hover:bg-blue-600 text-white mr-2 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
             >
-               <FaChartBar className="w-4 h-4 inline mr-2" />
-              New Process
+              <FaPlus className="w-4 h-4" />
             </Link>
-          </div>          
-          <div className="absolute top-4 right-4">
+            {hasResults && (<Link
+              title="Show Results"
+              href={`/results/${process._id}`}
+              className="bg-slate-500  hover:bg-slate-600 text-white mr-2 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-offset-2"
+            >
+              <FaChartBar className="w-4 h-4" />
+            </Link>)}
+            {process.trigger_type === 'USER' && <div
+                title="Re-run Process"
+                className="cursor-pointer bg-orange-500 mr-2 hover:bg-orange-600  text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">
+                  <FaRedo className="w-4 h-4" />
+            </div>}          
             <Link
-              href={`/processes/repository/${process.repository}`}
+              title="Go Back"
+              href={`/processes?repository=${process.repository}`}
               className="inline-block bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
             >
               <FaArrowLeft className="w-4 h-4" />
             </Link>
-          </div>            
-        </div>
-        <div className="bg-white rounded-lg shadow p-6">
-          <h2 className="text-2xl w-full mt-10 font-bold mb-4">Process Details</h2>
+          </div>
+          <h2 className="text-2xl w-full font-bold mb-4">Process Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 mb-6">
             <div><strong>Task Process:</strong> {process.task_process}</div>
             <div><strong>Actions:</strong> {process.actions.join(", ")}</div>
@@ -195,22 +196,9 @@ export default function ProcessShowView() {
               </div>
             </div>
           )}
-
-          {/* Results Link */}
-          {hasResults && (
-            <div className="mb-4">
-              <Link
-                href={`/processes/results/${process._id}`}
-                className="inline-block bg-blue-600 text-white py-2 px-4 rounded-md hover:bg-blue-700"
-              >
-                <FaSearch className="w-3 h-3 inline mr-2" />
-                See Results
-              </Link>
-            </div>
-          )}
         </div>
       </div>
-      <Footer />
+      <Footer backgroundColor="bg-orange-500"/>
     </div>
   );
 }

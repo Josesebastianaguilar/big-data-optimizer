@@ -5,7 +5,7 @@ import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ConfirmationModal from "@/components/ConfirmationModal";
-import { FaArrowLeft, FaPlus, FaSearch, FaEdit, FaTrash, FaArchive } from "react-icons/fa";
+import { FaArrowLeft, FaPlus, FaSearch, FaEdit, FaTrash, FaDatabase } from "react-icons/fa";
 
 // Mock repository and records data
 const repository = {
@@ -47,22 +47,23 @@ export default function RecordsListPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
-      <Header />
-      <div className="max-w-6xl mx-auto w-full px-4 py-8">
+      <Header backgroundColor="bg-purple-500" title="Records"/>
+      <main className="flex-grow max-w-6xl mx-auto w-full px-4 py-8">
         <div className="flex justify-between items-center mb-6">
           <Link
             href={`/records/create?repository=${repository._id}`}
-            className="bg-blue-600 hover:bg-blue-700 text-white py-2 px-4 rounded-md flex items-center"
+            className="bg-purple-500 hover:bg-purple-600 text-white py-2 px-4 rounded-md flex items-center focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2"
           >
             <FaPlus className="mr-2" /> New Record
           </Link>
           <div>
-            <FaArchive className="w-8 h-8 text-blue-600 inline mr-2" />
+            <FaDatabase className="w-6 h-6 inline text-purple-500 mr-2" />
             <span className="text-2xl font-bold">{repository.name} Records</span>
           </div>
           <Link
+              title="Go Back"
               href={`/repositories/`}
-              className="inline-block bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 mr-2"
+              className="inline-block bg-purple-500 text-white py-2 px-4 rounded-md hover:bg-purple-600 mr-2 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2"
             >
             <FaArrowLeft />
           </Link>
@@ -70,7 +71,7 @@ export default function RecordsListPage() {
         <div className="overflow-x-auto w-full">
           <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
             <thead>
-              <tr className="bg-blue-600 text-white">
+              <tr className="bg-purple-500 text-white">
                 {repository.parameters.map((param) => (
                   <th key={param.name} className="px-4 py-3 text-left text-sm font-semibold">
                     {param.name}
@@ -90,23 +91,22 @@ export default function RecordsListPage() {
                   <td className="px-4 py-2 text-sm text-gray-800 space-x-2">
                     <Link
                       href={`/records/show/${record._id}?repository=${repository._id}`}
-                      className="inline-block bg-blue-500 text-white py-1 px-3 rounded-md hover:bg-blue-600"
+                      className="inline-block"
                     >
-                      <FaSearch className="w-4 h-4" />
+                      <FaSearch className="w-4 h-4 text-stone-700 hover:text-stone-800" title="Show Record"/>
                     </Link>
                     <Link
                       href={`/records/edit/${record._id}?repository=${repository._id}`}
-                      className="inline-block bg-green-500 text-white py-1 px-3 rounded-md hover:bg-green-600"
+                      className="inline-block"
                     >
-                      <FaEdit className="w-4 h-4" />
+                      <FaEdit className="w-4 h-4 text-green-500 hover:text-green-600" title="Edit Record"/>
                     </Link>
-                    <Link
-                      href=""
+                    <button
                       onClick={() => handleDeleteClick(record)}
-                      className="inline-block bg-red-500 text-white py-1 px-3 rounded-md hover:bg-red-600"
+                      className="inline-block"
                     >
-                      <FaTrash className="w-4 h-4" />
-                    </Link>
+                      <FaTrash className="cursor-pointer w-4 h-4 text-red-500 hover:text-red-600" title="Delete Record"/>
+                    </button>
                   </td>
                 </tr>
               ))}
@@ -121,8 +121,8 @@ export default function RecordsListPage() {
           onConfirm={confirmDelete}
           onCancel={cancelDelete}
         />
-      </div>
-      <Footer />
+      </main>
+      <Footer backgroundColor="bg-purple-500"/>
     </div>
   );
 }

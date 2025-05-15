@@ -30,30 +30,34 @@ export default function ViewRepositoryPage() {
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
-      <Header backgroundColor="bg-sky-600"/>
-      <div className="flex-grow my-4 flex items-center justify-center px-4">
+      <Header backgroundColor="bg-sky-600" title="Repositories"/>
+      <main className="flex-grow my-4 flex items-center justify-center px-4">
         {/* Top Buttons */}
         <div className="max-w-3xl w-full bg-white p-6 shadow-md rounded-lg">
           <div className="flex justify-end items-center mb-2">
             <Link
+              title="Show Repository Processes"
               href={`/processes?repository=${repository._id}`}
               className="inline-block bg-orange-500 text-white py-2 mr-2 px-4 rounded-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2"
             >
               <FaProjectDiagram className="w-4 h-4" />
             </Link>
             <Link
+              title="Show Repository Records"
               href={`/records?repository${repository._id}`}
               className="inline-block bg-purple-500 text-white py-2 mr-2 px-4 rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2"
             >
               <FaList className="w-4 h-4" />
             </Link>
             <Link
+              title="Edit Repository"
               href={`/repositories/edit/${repository._id}`}
               className="inline-block bg-green-500 text-white py-2 px-4 mr-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
             >
               <FaEdit className="w-4 h-4" />
             </Link>
             <Link
+              title="Go Back"
               href="/repositories"
               className="inline-block bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-600 focus:ring-offset-2"
             >
@@ -72,17 +76,17 @@ export default function ViewRepositoryPage() {
             <p className="text-lg">
               <strong>Description:</strong> {repository.description || "N/A"}
             </p>
-            <p className="text-lg">
+            {repository.url && <p className="text-lg">
               <strong>URL:</strong>{" "}
-              {repository.url && <a
+              <a
                 href={repository.url}
                 target="_blank"
                 rel="noopener noreferrer"
                 className="no-underline"
               >
-                <FaShareSquare className="w-4 h-4 text-sky-600 inline" />
-              </a>}
-            </p>
+                <FaShareSquare title="Open repository URL in another tab" className="w-4 h-4 text-sky-600 inline" />
+              </a>
+            </p>}
             {repository.large_file ? (
               <p className="text-lg">
                 <strong>File Path:</strong> {repository.file_path || "N/A"}
@@ -122,7 +126,7 @@ export default function ViewRepositoryPage() {
             </div>
           </div>
         </div>
-      </div>
+      </main>
       <Footer backgroundColor="bg-sky-600" />
     </div>
   );

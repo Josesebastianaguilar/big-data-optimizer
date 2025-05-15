@@ -58,9 +58,9 @@ export default function RepositoriesPage() {
 
   return (
     <div className="min-h-screen flex flex-col items-center justify-between bg-gray-50 text-gray-800">
-      <Header backgroundColor="bg-sky-600" />
-      <div className="w-full max-w-6xl px-4">
-        <div className="flex mt-4 sm:mt-0 justify-between items-center mb-6">
+      <Header backgroundColor="bg-sky-600" title="Repositories" />
+      <main className="w-full max-w-6xl px-4">
+        <div className="flex sm:mt-0 justify-between items-center mb-6">
           <Link
             href="/repositories/create"
             className="bg-sky-600 hover:bg-sky-700 text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-700 focus:ring-offset-2"
@@ -118,43 +118,47 @@ export default function RepositoriesPage() {
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-800 space-x-2">
                     <Link
+                      title="Show Repository Processes"
                       href={`/processes?repository=${repo._id}`}
                       className="inline-block"
                     >
                       <FaProjectDiagram className="w-4 h-4 text-orange-500 hover:text-orange-600" />
                     </Link>
                     <Link
-                      href={`/records?repository${repo._id}`}
+                      title="Show Repository Records"
+                      href={`/records?repository=repository${repo._id}`}
                       className="inline-block"
                     >
                       <FaList className="w-4 h-4 text-purple-500 hover:text-purple-600" />
                     </Link>
                     <Link
+                      title="Show Repository"
                       href={`/repositories/show/${repo._id}`}
                       className="inline-block"
                     >
                       <FaSearch className="w-4 h-4 text-stone-700 hover:text-stone-800" />
                     </Link>
                     <Link
+                      title="Edit Repository"
                       href={`/repositories/edit/${repo._id}`}
                       className="inline-block"
                     >
                       <FaEdit className="w-4 h-4 text-green-500 hover:text-green-600" />
                     </Link>
-                    <Link
-                      href=""
+                    <button
+                      title="Delete Repository"
                       onClick={() => handleDeleteClick(repo)}
                       className="inline-block"
                     >
-                      <FaTrash className="w-4 h-4 text-red-500 hover:text-red-600" />
-                    </Link>
+                      <FaTrash className="cursor-pointer w-4 h-4 text-red-500 hover:text-red-600" />
+                    </button>
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
         </div>
-      </div>
+      </main>
 
       {/* Confirmation Modal */}
       <ConfirmationModal
