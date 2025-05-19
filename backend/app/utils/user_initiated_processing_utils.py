@@ -5,8 +5,8 @@ from app.database import db
 from app.utils.monitor_resources_utils import monitor_resources, get_metrics, dequeue_measurements, get_process_times
 from queue import Queue
 from threading import Lock
-import utils.non_optimized_processing_utils as non_opt_utils
-import utils.optimized_processing_utils as opt_utils
+from app.utils import non_optimized_processing_utils as non_opt_utils
+from  app.utils import optimized_processing_utils as opt_utils
 import pandas as pd
 import multiprocessing as mp
 import time

@@ -1,10 +1,10 @@
-from apscheduler.schedulers.background import BackgroundScheduler
-from apscheduler.triggers.cron import CronTrigger
 import logging
+import os
+from apscheduler.triggers.cron import CronTrigger
+from apscheduler.schedulers.background import BackgroundScheduler
 from app.utils.cron_initiated_processing_utils import prepare_cron_initiated_processes
 from app.utils.validation_utils import init_validation
 from dotenv import load_dotenv
-import os
 
 load_dotenv()
 
@@ -34,7 +34,7 @@ def start_cron_jobs():
             id=f"init_validation_{hour}",  # Unique ID for the job
             replace_existing=True,
         )
-    logging.info(f"Cron job 'prepare_cron_initiated_process' added to run daily at PROCESSING_HOURS. {PROCESSING_HOURS.split(',')}")
+    logging.info(f"Cron job 'prepare_cron_initiated_process' added to run daily at PROCESSING_HOURS. {PROCESSING_HOURS}")
 
     # Start the scheduler
     scheduler.start()

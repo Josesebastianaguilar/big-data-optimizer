@@ -20,11 +20,11 @@ async def login(user: User):
         
         access_token = create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=30))
         
-        return {"access_token": access_token, "token_type": "bearer", "user": db_user.copy().pop("password")}
+        return {"_id": str(db_user["_id"]), "access_token": access_token, "username": db_user["username"], "role": db_user["role"], "token_type": "bearer"}
     except Exception as e:
         raise e
 
-@router.post("/register")
+@router.post("/register", response_model=Token)
 async def register(user: User):
     """
     Register a new user. If there are already 2 users, the new user will be an admin.
@@ -48,7 +48,8 @@ async def register(user: User):
         
         new_user = {"username": user.username, "role": role_name, "password": hashed_password}
         result = await db["users"].insert_one(new_user)
+        access_token = create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=30))
         
-        return {"id": str(result.inserted_id), "username": user.username}
+        return {"_id": str(result.inserted_id), "username": user.username, "access_token": access_token, "role": role_name, "token_type": "bearer"}
     except Exception as e: 
         raise e

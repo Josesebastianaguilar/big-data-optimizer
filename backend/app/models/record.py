@@ -9,3 +9,6 @@ class Record(BaseModel):
     created_at: Optional[Any]
     updated_at: Optional[Any]
     version: Optional[int] = None
+    
+    class Config:
+        arbitrary_types_allowed = True

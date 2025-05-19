@@ -18,8 +18,8 @@ class ProcessingStatus(str, Enum):
   COMPLETED = "completed"
   FAILED = "failed"
 
-class ProcessingMetrics(BaseModel):
-  _id: Optional[str]
+class Process(BaseModel):
+  _id: Optional[ObjectId]
   task_process: ProcessName
   actions: List[ProcessName]
   status: ProcessingStatus
@@ -42,3 +42,6 @@ class ProcessingMetrics(BaseModel):
   updated_at: Optional[Any]
   iteration: Optional[int]
   repository_version: Optional[int]
+  
+  class Config:
+    arbitrary_types_allowed = True

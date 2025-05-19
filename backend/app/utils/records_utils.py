@@ -1,6 +1,7 @@
 from fastapi import HTTPException
 from app.database import db
 from datetime import datetime
+from typing import Any
 
 def validate_permissions_and_repository(current_user: dict, repository: Any):
     """
@@ -18,7 +19,7 @@ def validate_permissions_and_repository(current_user: dict, repository: Any):
 async def update_repository_info(repository: Any):
     records_count = await db["records"].count_documents({"repository": repository["_id"]})
     now = datetime.now()
-    repository_data = {"current_data_size": records_count, "data_updated_at": now "updated_at": now, verion: repository["version"] + 1}
+    repository_data = {"current_data_size": records_count, "data_updated_at": now, "updated_at": now, verion: repository["version"] + 1}
     
     await db["repositories"].update_one({"_id": repository["_id"]}, {"$set": repository_data})
     

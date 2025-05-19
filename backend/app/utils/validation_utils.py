@@ -8,8 +8,8 @@ from threading import Lock
 from dotenv import load_dotenv
 from collections import defaultdict
 from datetime import datetime
-import utils.non_optimized_processing_utils as non_opt_utils
-import utils.optimized_processing_utils as opt_utils
+from  app.utils import non_optimized_processing_utils as non_opt_utils
+from  app.utils import optimized_processing_utils as opt_utils
 import pandas as pd
 import multiprocessing as mp
 import time

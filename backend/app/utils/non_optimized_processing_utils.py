@@ -1,8 +1,8 @@
 import pandas as pd
 import operator
-from typing import List, Any
+from typing import List, Any, Dict, Tuple
 from collections import defaultdict
-from app.general_utils import validate_columns, validate_column_types, validate_operator, validate_aggregation, OPERATORS, AGGREGATION_FUNCTIONS
+from app.utils.general_utils import validate_columns, validate_columns_types, validate_operator, validate_aggregation, OPERATORS, AGGREGATION_FUNCTIONS
 
 def map_groupped_records(groupped_data: dict, map_property: str) -> dict:
     """

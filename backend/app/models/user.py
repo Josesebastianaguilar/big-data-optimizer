@@ -1,6 +1,6 @@
 from pydantic import BaseModel
 from bson import ObjectId
-from typing import Optional
+from typing import Optional, Any
 
 class User(BaseModel):
     _id: Optional[ObjectId] = None
@@ -9,5 +9,8 @@ class User(BaseModel):
     password: str
 
 class Token(BaseModel):
+    _id: Optional[str]
     access_token: str
     token_type: str
+    username: Optional[str]
+    role: Optional[str]
