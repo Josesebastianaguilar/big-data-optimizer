@@ -3,7 +3,7 @@ from bson import ObjectId
 from typing import Optional, Any
 
 class User(BaseModel):
-    _id: Optional[ObjectId] = None
+    _id: Optional[Any] = None
     username: str
     role: Optional[str] = "user"
     password: str

@@ -1,39 +1,34 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import ConfirmationModal from "@/components/ConfirmationModal";
-import { FaArchive, FaCogs, FaSearch, FaEdit, FaTrash, FaList, FaPlus, FaShareSquare, FaProjectDiagram } from "react-icons/fa";
+import { FaArchive, FaSearch, FaEdit, FaTrash, FaList, FaPlus, FaShareSquare, FaProjectDiagram, FaSpinner } from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
+import api from "@/app/api";
 import Link from "next/link";
 
 export default function RepositoriesPage() {
-  const [repositories, setRepositories] = useState([
-    {
-      _id: 1,
-      name: "Repository A",
-      url: "https://example.com/repo-a",
-      original_data_size: "500 MB",
-      current_data_size: "300 MB",
-      parameters: "filter=active",
-    },
-    {
-      _id: 2,
-      name: "Repository B",
-      url: "https://example.com/repo-b",
-      original_data_size: "1 GB",
-      current_data_size: "800 MB",
-      parameters: "group=region",
-    },
-    {
-      _id: 3,
-      name: "Repository C",
-      url: "https://example.com/repo-c",
-      original_data_size: "2 GB",
-      current_data_size: "1.5 GB",
-      parameters: "aggregate=sum",
-    },
-  ]);
+  const { token, role } = useAuth();
+  const [loading, setLoading] = useState(true);
+  const [repositories, setRepositories] = useState([]);
+  
+  useEffect(() => {
+    const fetchRepositories = async () => {
+      try {
+        setLoading(true);
+        const response = await api.get("/repositories");
+        setRepositories(response.data.items);
+      } catch (error) {
+        console.error("Error fetching repositories:", error);
+      } finally {
+        setLoading(false);
+      }
+    };
+    fetchRepositories(); 
+  }, []);
+  
 
   const [showModal, setShowModal] = useState(false);
   const [repositoryToDelete, setRepositoryToDelete] = useState(null);
@@ -61,34 +56,32 @@ export default function RepositoriesPage() {
       <Header backgroundColor="bg-sky-600" title="Repositories" />
       <main className="w-full max-w-6xl px-4">
         <div className="flex sm:mt-0 justify-between items-center mb-6">
-          <Link
+          {token && role === 'admin' && <Link
             href="/repositories/create"
             className="bg-sky-600 hover:bg-sky-700 text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-700 focus:ring-offset-2"
           >
             <FaPlus className="mr-2 inline" />
             <span>New Repository</span>
-          </Link>
+          </Link>}
           <h1 className="text-3xl font-bold text-gray-800">
             <FaArchive className="w-8 h-8 text-sky-600 inline mr-2" />
             Repositories
           </h1>
         </div>
-        <div className="overflow-x-auto w-full mb-4 sm:mb-0">
+        {loading&& <FaSpinner className="animate-spin inline mr-2" />}
+        {!loading && <div className="overflow-x-auto w-full mb-4 sm:mb-0">
           <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
             <thead>
               <tr className="bg-sky-600 text-white">
-                <th className="px-6 py-3 text-left text-sm font-semibold">Name</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold">URL</th>
-                <th className="px-6 py-3 text-left text-sm font-semibold">
-                  Original Data Size
+                <th className="px-6 py-3 text-center text-sm font-semibold">Name</th>
+                <th className="px-6 py-3 text-center text-sm font-semibold">URL</th>
+                <th className="px-6 py-3 text-center text-sm font-semibold">
+                  Initial # of Records
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold">
-                  Current Data Size
+                <th className="px-6 py-3 text-center text-sm font-semibold">
+                  Current # of Records
                 </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold">
-                  Parameters
-                </th>
-                <th className="px-6 py-3 text-left text-sm font-semibold">
+                <th className="px-6 py-3 text-center text-sm font-semibold">
                   Actions
                 </th>
               </tr>
@@ -96,68 +89,66 @@ export default function RepositoriesPage() {
             <tbody>
               {repositories.map((repo, index) => (
                 <tr
-                  key={repo._id}
+                  key={repo._id.$oid}
                   className={`${
                     index % 2 === 0 ? "bg-gray-50" : "bg-white"
                   } hover:bg-gray-100`}
                 >
                   <td className="px-6 py-4 text-sm text-gray-800">{repo.name}</td>
-                  <td className="px-6 py-4 text-sm text-blue-600">
+                  <td className="text-center px-6 py-4 text-sm text-blue-600">
                     {repo.url && <a href={repo.url} target="_blank" rel="noopener noreferrer no-underline text-slate-600">
                       <FaShareSquare className="w-4 h-4 text-sky-600" />
                     </a>}
+                    {!repo.url && <span className="text-gray-400">-</span>}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-800">
+                  <td className="px-6 py-4 text-sm text-gray-800 text-center">
                     {repo.original_data_size}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-800">
+                  <td className="px-6 py-4 text-sm text-gray-800 text-center">
                     {repo.current_data_size}
                   </td>
-                  <td className="px-6 py-4 text-sm text-gray-800">
-                    {repo.parameters}
-                  </td>
-                  <td className="px-6 py-4 text-sm text-gray-800 space-x-2">
-                    <Link
+                  <td className="px-6 py-4 text-sm text-gray-800 space-x-2 text-center">
+                    {token && <Link
                       title="Show Repository Processes"
-                      href={`/processes?repository=${repo._id}`}
+                      href={`/processes?repository=${repo._id.$oid}`}
                       className="inline-block"
                     >
                       <FaProjectDiagram className="w-4 h-4 text-orange-500 hover:text-orange-600" />
-                    </Link>
+                    </Link>}
                     <Link
                       title="Show Repository Records"
-                      href={`/records?repository=repository${repo._id}`}
+                      href={`/records?repository=repository${repo._id.$oid}`}
                       className="inline-block"
                     >
                       <FaList className="w-4 h-4 text-purple-500 hover:text-purple-600" />
                     </Link>
                     <Link
                       title="Show Repository"
-                      href={`/repositories/show/${repo._id}`}
+                      href={`/repositories/show/${repo._id.$oid}`}
                       className="inline-block"
                     >
                       <FaSearch className="w-4 h-4 text-stone-700 hover:text-stone-800" />
                     </Link>
-                    <Link
+                    {token && role === 'admin' && <Link
                       title="Edit Repository"
-                      href={`/repositories/edit/${repo._id}`}
+                      href={`/repositories/edit/${repo._id.$oid}`}
                       className="inline-block"
                     >
                       <FaEdit className="w-4 h-4 text-green-500 hover:text-green-600" />
-                    </Link>
-                    <button
+                    </Link>}
+                    {token && role === 'admin' && <button
                       title="Delete Repository"
                       onClick={() => handleDeleteClick(repo)}
                       className="inline-block"
                     >
                       <FaTrash className="cursor-pointer w-4 h-4 text-red-500 hover:text-red-600" />
-                    </button>
+                    </button>}
                   </td>
                 </tr>
               ))}
             </tbody>
           </table>
-        </div>
+        </div>}
       </main>
 
       {/* Confirmation Modal */}

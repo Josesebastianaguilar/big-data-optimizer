@@ -1,7 +1,7 @@
 "use client";
+import {FaGithub, FaLinkedin, FaEnvelope} from "react-icons/fa";
 
 export default function Footer({backgroundColor}) {
-  const repository_url = process.env.NEXT_PUBLIC_REPOSITORY_URL || "https://github.com/";
   return (
     <footer className={"w-full text-white py-6 text-center " + (backgroundColor || "bg-gray-800")}>
       <p>
@@ -9,12 +9,25 @@ export default function Footer({backgroundColor}) {
       </p>
       <div className="mt-4 flex justify-center gap-4">
         <a
-          href={repository_url}
+          href={process.env.NEXT_PUBLIC_REPOSITORY_URL || "https://github.com/"}
           target="_blank"
           rel="noopener noreferrer"
           className="hover:underline"
         >
-          GitHub
+          <FaGithub className="h4 w-4"/>
+        </a>
+        <a
+          href={process.env.NEXT_PUBLIC_LINKEDIN_URL || "https://www.linkedin.com/in/"}
+          target="_blank"
+          className="hover:underline"
+        >
+          <FaLinkedin className="h4 w-4"/>
+        </a>
+        <a
+          href={process.env.NEXT_PUBLIC_EMAIL}
+          className="hover:underline"
+        >
+          <FaEnvelope className="h4 w-4"/>
         </a>
       </div>
     </footer>

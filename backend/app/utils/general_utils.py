@@ -35,17 +35,24 @@ def get_query_params(request: Request) -> dict:
     """
     query_params = request.query_params._dict
     limit = int(query_params.get("limit", 10))
-    offset = int(query_params.get("offset", 0))
+    page = int(query_params.get("page", 1))
+    offset = limit * (page - 1)
     
-    if limit > 100:
+    if offset < 0:
+        offset = 0
+        
+    if limit < 1:
+        limit = 1
+    elif limit > 100:
         limit = 100
     
     if "limit" in query_params:
         query_params.pop("limit")
-    if "offset" in query_params:
-        query_params.pop("offset")
+    if "page" in query_params:
+        query_params.pop("page")
+        
     
-    return {"query_params": query_params, "limit": limit, "offset": offset}
+    return {"query_params": query_params, "limit": limit, "offset": offset, "page": page}
 
 def validate_columns(collection_columns: List[str], process_columns: List[str]):
     """

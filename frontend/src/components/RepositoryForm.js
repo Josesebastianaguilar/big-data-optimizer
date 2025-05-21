@@ -16,12 +16,6 @@ export default function RepositoryForm({
   const [parameters, setParameters] = useState(initialData.parameters || []);
   const [changeFile, setChangeFile] = useState(false); // For edit view
 
-  useEffect(() => {
-    console.log("filePath:", filePath);
-    console.log("largeFile:", largeFile);
-    console.log("file:", file);
-  }, [filePath, largeFile, file]);
-
   const handleSubmit = (e) => {
     e.preventDefault();
 
@@ -37,15 +31,17 @@ export default function RepositoryForm({
       return;
     }
 
-    const formData = {
-      name,
-      description,
-      url,
-      large_file: largeFile,
-      file_path: largeFile ? filePath : null,
-      file: largeFile ? null : file,
-      parameters,
-    };
+    const formData = new FormData();
+    formData.append("name", name);
+    formData.append("description", description);
+    formData.append("url", url);
+    formData.append("large_file", largeFile);
+    formData.append("file_path", largeFile ? filePath : null);
+    formData.append("file", !largeFile ? file : null);
+
+    if (type === 'edit'){
+      formData.append("parameters", parameters);
+    }
 
     onSubmit(formData);
   };

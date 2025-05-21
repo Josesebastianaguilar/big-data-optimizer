@@ -3,20 +3,28 @@
 import RepositoryForm from "@/components/RepositoryForm";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
+import { useAuth } from "@/context/AuthContext";
 import { FaArrowLeft, FaArchive } from "react-icons/fa";
 import Link from "next/link";
+import api from "@/app/api";
 
 export default function CreateRepositoryPage() {
   const router = useRouter();
+  const { token, role } = useAuth();
+  useEffect(() => {
+    console.log('token', token);
+    console.log('role', role);
+    if (!token || role !== "admin") {
+      router.push("/");
+    }
+  }
+  , [token, role, router]);
 
-  const handleCreate = (data) => {
-    console.log("Creating repository:", data);
-    // Simulate API call
-    setTimeout(() => {
-      alert("Repository created successfully!");
-      router.push("/repositories");
-    }, 1000);
+  const handleCreate = async (data) => {
+    const response = await api.post("/repositories", data)
+    console.log('response', response);
   };
 
   return (

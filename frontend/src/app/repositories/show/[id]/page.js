@@ -4,9 +4,11 @@ import { useParams } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { FaArrowLeft, FaEdit, FaArchive, FaList, FaProjectDiagram, FaShareSquare } from "react-icons/fa";
+import { useAuth } from "@/context/AuthContext";
 import Link from "next/link";
 
 export default function ViewRepositoryPage() {
+  const { token, role } = useAuth();
   // Mock repository data
   const repository = {
     _id: 1,
@@ -35,13 +37,13 @@ export default function ViewRepositoryPage() {
         {/* Top Buttons */}
         <div className="max-w-3xl w-full bg-white p-6 shadow-md rounded-lg">
           <div className="flex justify-end items-center mb-2">
-            <Link
+            {token && <Link
               title="Show Repository Processes"
               href={`/processes?repository=${repository._id}`}
               className="inline-block bg-orange-500 text-white py-2 mr-2 px-4 rounded-md hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2"
             >
               <FaProjectDiagram className="w-4 h-4" />
-            </Link>
+            </Link>}
             <Link
               title="Show Repository Records"
               href={`/records?repository${repository._id}`}
@@ -49,13 +51,13 @@ export default function ViewRepositoryPage() {
             >
               <FaList className="w-4 h-4" />
             </Link>
-            <Link
+            {token && role === 'admin' && <Link
               title="Edit Repository"
               href={`/repositories/edit/${repository._id}`}
               className="inline-block bg-green-500 text-white py-2 px-4 mr-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
             >
               <FaEdit className="w-4 h-4" />
-            </Link>
+            </Link>}
             <Link
               title="Go Back"
               href="/repositories"

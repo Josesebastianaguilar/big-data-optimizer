@@ -7,14 +7,18 @@ from bson.objectid import ObjectId
 from fastapi import UploadFile
 from dotenv import load_dotenv
 from datetime import datetime
+from io import BytesIO
 import pandas as pd
 import mimetypes
 import logging
 import os
 import asyncio
+import json
 
 load_dotenv()
 logging.basicConfig(filename=os.getenv("ERROR_LOG_PATH", "error.log"), level=logging.ERROR)
+logging.basicConfig(filename=os.getenv("INFO_LOG_PATH", "info.log"), level=logging.INFO)
+logging.basicConfig(filename=os.getenv("WARNING_LOG_PATH", "warning.log"), level=logging.WARNING)
 
 async def store_repository_records(repository: Repository, parameters: List[dict], csv_data: pd.DataFrame, file_size: float, delete_existing_records: bool = False):
     if delete_existing_records:
@@ -26,11 +30,16 @@ async def store_repository_records(repository: Repository, parameters: List[dict
     try:
         now = datetime.now()
         records_data = csv_data.to_dict(orient="records")
-        records = [{"repository": ObjectId(repository['_id']), "data": record, "created_at": now, "updated_at": now, version: 0} for record in records_data]
+        records = [{"repository": ObjectId(repository['_id']), "data": record, "created_at": now, "updated_at": now, "version": 0} for record in records_data]
         num_records = len(records)
         
-        await db["records"].insert_many(records)
-        logging.info(f"Inserted {num_records} records for repository {repository['_id']}")
+        batch_size = 100_000
+        for i in range(0, num_records, batch_size):
+            batch = records[i:i + batch_size]
+            await db["records"].insert_many(batch)
+            logging.info(f"Inserted {len(batch)} records for repository {repository['_id']}")
+        
+        logging.info(f"Inserted total {num_records} records for repository {repository['_id']}")
 
         repository_data = {
             "data_ready": True,
@@ -44,18 +53,17 @@ async def store_repository_records(repository: Repository, parameters: List[dict
         }
         await db["repositories"].update_one({"_id": ObjectId(repository['_id'])}, {"$set": repository_data})
         logging.info(f"Updated repository {repository['_id']} with {num_records} records")
-        #q: I need to delete the file from the system at repository.file_path
-        if repository.large_file and repository.file_path:
-            path = Path(repository.file_path)
+        if repository["large_file"] and repository["file_path"]:
+            path = Path(repository["file_path"])
             if path.exists():
                 try:
                     path.unlink()
-                    logging.info(f"Deleted file at {repository.file_path}")
+                    logging.info(f"Deleted file at {repository['file_path']}")
                 except Exception as e:
-                    logging.error(f"Error deleting file at {repository.file_path}: {e}")
-                    raise ValueError(f"Error deleting file at {repository.file_path}: {e}")
+                    logging.error(f"Error deleting file at {repository['file_path']}: {e}")
+                    raise ValueError(f"Error deleting file at {repository['file_path']}: {e}")
             else:
-                logging.warning(f"File at {repository.file_path} does not exist")
+                logging.warning(f"File at {repository['file_path']} does not exist")
         
 
     except Exception as e:
@@ -72,12 +80,17 @@ def read_file_from_path(file_path: str) -> bytes:
         return file.read()
 
 
-async def process_file(repository: Repository, delete_existing_records: bool = False) -> List[dict]:
+async def process_file(repository: dict, delete_existing_records: bool = False) -> List[dict]:
     """Get parameters from the uploaded CSV file."""
-    if hasattr(repository, 'file'):
-        file_content = await repository.file.read()
-    elif repository.large_file is True and repository.file_path:
-        file_content = read_file_from_path(repository.file_path)
+    file_content = None
+
+    if "file" in repository and repository["file"] is not None:
+        file_content = repository["file"]
+    elif repository.get("large_file") is True and repository["file_path"] is not None:
+        file_content = read_file_from_path(repository["file_path"])
+    else:
+        logging.error("No file or file_path provided for processing.")
+        raise ValueError("No file or file_path provided for processing.")
     
     file_size = len(file_content) / (1024 * 1024)
     csv_data = pd.read_csv(BytesIO(file_content))
@@ -112,15 +125,16 @@ async def process_file(repository: Repository, delete_existing_records: bool = F
 
     await store_repository_records(repository, parameters, csv_data, file_size, delete_existing_records)
 
-def validate_repository_file(repository: Repository):
-    if not hasattr(repository, 'file') and repository.large_file is True and repository.file_path is None:
-            raise HTTPException(status_code=400, detail="Must specify file_path for large files.")
+def validate_repository_file(repository: dict):
+    if repository["file"] is None and repository["large_file"] is True and repository["file_path"] is None:
+        raise HTTPException(status_code=400, detail="Must specify file_path for large files.")
             
-    if hasattr(repository, 'file') and repository.file.content_type != "text/csv":
+    if repository["file"] and repository["file"].content_type != "text/csv":
+        mime_type, _ = mimetypes.guess_type(repository["file"].filename)
         raise HTTPException(status_code=400, detail="Invalid file type. Only CSV files are allowed.")
     
-    if not hasattr(repository, 'file') and repository.large_file is True:
-        file_path = Path(repository.file_path)
+    if "file" not in repository and repository["large_file"] is True:
+        file_path = Path(repository["file_path"])
 
         if not file_path.exists() or not file_path.is_file():
             raise HTTPException(status_code=400, detail="File does not exist or is not a file.")
@@ -130,47 +144,53 @@ def validate_repository_file(repository: Repository):
         if mime_type != "text/csv":
             raise HTTPException(status_code=400, detail="Invalid file type. Only CSV files are allowed.")
 
-async def upsert_repository(repository: Repository, current_user: dict) -> dict:
+async def upsert_repository(_id, name, description, url, large_file, file_path, file, current_user: dict, upsert_type: str) -> dict:
     """Upsert a repository."""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Not enough permissions")
+    
+    repository = {"name": name, "description": description, "url": url, "large_file": large_file, "file_path": file_path, "file": file}
 
-    if repository["_id"] is None:
-        if not hasattr(repository, 'file') and repository.large_file is not True:
+    if upsert_type == "create":
+        if repository["file"] is None and repository["large_file"] is not True:
             raise HTTPException(status_code=400, detail="File is required for new repositories.")
         
-        validate_repository_file(repository)
-        now = datetime.now()
-        repository_data = {"name": repository.name, "description": repository.description, "url": repository.url, "version": 0, "data_ready": False, "valid": False, "created_at": now, "updated_at": now}
-
         try:
-            result = await db["repositories"].insert_one(repository)
+            validate_repository_file(repository)
+            now = datetime.now()
+            repository_data = {"name": repository["name"], "description": repository["description"], "url": repository["url"], "version": 0, "data_ready": False, "valid": False, "created_at": now, "updated_at": now}
+            result = await db["repositories"].insert_one(repository_data)
+            file_content = await repository["file"].read()
             repository["_id"] = result.inserted_id
-            asyncio.create_task(process_file, repository)
+            repository["file"] = file_content
+            asyncio.create_task(process_file(repository))
 
-            return Response(status_code=201, content={"id": str(repository["_id"]), "message": "Repository created successfully"})
+            return Response(status_code=201, content=json.dumps({"id": str(repository["_id"]), "message": "Repository created successfully"}), media_type="application/json")
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error insertincreatingg repository: {str(e)}")
     
-    if repository["_id"] is not None:
+    elif upsert_type == "update":
         validate_repository_file(repository)
         now = datetime.now()
-        repository_data = {"name": repository.name, "description": repository.description, "url": repository.url, "version": 0, "updated_at": now}
-        if hasattr(repository, 'file') or repository.large_file is True:
+        repository_data = {"name": repository["name"], "description": repository["description"], "url": repository["url"], "version": 0, "updated_at": now}
+        if hasattr(repository, "file") or repository["large_file"] is True:
             repository_data["data_ready"] = False
             repository_data["valid"] = False
             repository_data["file_size"] = None
             repository_data["original_data_size"] = None
             repository_data["current_data_size"] = None
             repository_data["data_updated_at"] = None
+            if repository["file"] is not None:
+                file_content = await repository["file"].read()
+                repository["file"] = file_content
 
         try:
-            result = await db["repositories"].update_one({"_id": repository["_id"]}, {"$set": repository_data})
+            result = await db["repositories"].update_one({"_id": _id}, {"$set": repository_data})
             
-            if hasattr(repository, 'file') or repository.large_file is True:
-                asyncio.create_task(process_file, repository, True)
+            if hasattr(repository, 'file') or repository["large_file"] is True:
+                asyncio.create_task(process_file(repository, True))
             
-            return Response(status_code=200, content={"id": str(repository["_id"]), "message": "Repository updated successfully"})
+            return Response(status_code=200, content=json.dumps({"id": str(repository["_id"]), "message": "Repository updated successfully"}), media_type="application/json")
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error updating repository: {str(e)}")

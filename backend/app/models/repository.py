@@ -6,7 +6,7 @@ from fastapi import UploadFile
 class Repository(BaseModel):
     _id: Optional[ObjectId] = None
     name: str
-    description: str
+    description: Optional[str] = None
     url: str
     type: Optional[str]
     file_path: Optional[str] = None
@@ -19,7 +19,10 @@ class Repository(BaseModel):
     current_data_size: Optional[int] = None
     data_created_at: Optional[Any] = None
     data_updated_at: Optional[Any] = None
-    parameters: Optional[List[dict]] = None
-    version: Optional[int]
+    parameters: Optional[List[dict]] = []
+    version: Optional[Any] = None
+    
+    class Config:
+        arbitrary_types_allowed = True
     
     
