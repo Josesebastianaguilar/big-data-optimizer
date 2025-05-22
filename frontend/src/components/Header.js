@@ -21,9 +21,9 @@ export default function Header({ backgroundColor, title }) {
       {!title && (<p className="mt-4 text-lg">
         A system to compare Big Data processing optimization processes.
       </p>)}
-      <div className="flex justify-between items-center ">
-        {(token || pathname === '/repositories') && <NavBar />}
-        {token && <UserDropdown />}
+      <div className={`flex items-center ${['/'].includes(pathname) && !token ? 'justify-end' : 'justify-between'}`}>
+        {!['/login', '/register'].includes(pathname) && (token || pathname.includes(['/repositories'] || pathname.includes(['/records']))) && <NavBar />}
+        {!['/login','/register'].includes(pathname) && <UserDropdown />}
       </div>
     </header>
   );

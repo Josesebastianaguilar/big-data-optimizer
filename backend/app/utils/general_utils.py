@@ -1,6 +1,7 @@
 from fastapi import Request
 from typing import List, Any
 from app.models.process import Process, ProcessName
+from bson.objectid import ObjectId
 import operator
 
 OPERATORS = {
@@ -37,6 +38,10 @@ def get_query_params(request: Request) -> dict:
     limit = int(query_params.get("limit", 10))
     page = int(query_params.get("page", 1))
     offset = limit * (page - 1)
+    select_parameters = [col for col in query_params.get("select", "").strip().split(" ") if col]
+    select = {}
+    for col in select_parameters:
+        select[col] = 1
     
     if offset < 0:
         offset = 0
@@ -51,8 +56,14 @@ def get_query_params(request: Request) -> dict:
     if "page" in query_params:
         query_params.pop("page")
         
+    if "_id" in query_params:
+        try:
+            query_params["_id"] = ObjectId(query_params["_id"])
+        except Exception:
+            pass 
+        
     
-    return {"query_params": query_params, "limit": limit, "offset": offset, "page": page}
+    return {"query_params": query_params, "limit": limit, "offset": offset, "page": page, "select": select}
 
 def validate_columns(collection_columns: List[str], process_columns: List[str]):
     """

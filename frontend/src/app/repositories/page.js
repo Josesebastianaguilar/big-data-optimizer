@@ -3,6 +3,8 @@
 import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Paginator from "@/components/Paginator";
+import PageSize from "@/components/PageSize";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { FaArchive, FaSearch, FaEdit, FaTrash, FaList, FaPlus, FaShareSquare, FaProjectDiagram, FaSpinner } from "react-icons/fa";
 import { useAuth } from "@/context/AuthContext";
@@ -13,20 +15,27 @@ export default function RepositoriesPage() {
   const { token, role } = useAuth();
   const [loading, setLoading] = useState(true);
   const [repositories, setRepositories] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [limit, setLimit] = useState(10);
   
+  const fetchRepositories = async (newPage = 1, newLimit = 1) => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/repositories?page=${newPage}&limit=${newLimit}`);
+      setPage(newPage || 1);
+      setLimit(newLimit || 10);
+      setRepositories(response.data.items);
+      setTotalPages(response.data.totalPages);
+    } catch (error) {
+      console.error("Error fetching repositories:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const fetchRepositories = async () => {
-      try {
-        setLoading(true);
-        const response = await api.get("/repositories");
-        setRepositories(response.data.items);
-      } catch (error) {
-        console.error("Error fetching repositories:", error);
-      } finally {
-        setLoading(false);
-      }
-    };
-    fetchRepositories(); 
+    fetchRepositories(1, 10); 
   }, []);
   
 
@@ -70,6 +79,9 @@ export default function RepositoriesPage() {
         </div>
         {loading&& <FaSpinner className="animate-spin inline mr-2" />}
         {!loading && <div className="overflow-x-auto w-full mb-4 sm:mb-0">
+          <div className="flex justify-end my-2">
+            <PageSize page={page} value={limit} onChange={fetchRepositories}/>
+          </div>
           <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md">
             <thead>
               <tr className="bg-sky-600 text-white">
@@ -148,6 +160,14 @@ export default function RepositoriesPage() {
               ))}
             </tbody>
           </table>
+          <div className="flex justify-end my-2">
+            <Paginator
+              page={page}
+              totalPages={totalPages}
+              onPageChange={fetchRepositories}
+              activeBackgroundColor="bg-sky-600"
+            />
+          </div>
         </div>}
       </main>
 

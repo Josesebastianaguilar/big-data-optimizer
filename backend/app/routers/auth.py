@@ -21,7 +21,7 @@ async def login(user: User):
         if not db_user or not verify_password(user.password, db_user["password"]):
             raise HTTPException(status_code=401, detail="Invalid credentials")
         
-        access_token = create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=1))
+        access_token = create_access_token(data={"sub": user.username}, expires_delta=timedelta(minutes=TOKEN_EXPIRATION_TIME))
         
         return {"_id": str(db_user["_id"]), "access_token": access_token, "username": db_user["username"], "role": db_user["role"], "token_type": "bearer"}
     except Exception as e:

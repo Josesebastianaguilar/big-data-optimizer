@@ -7,28 +7,29 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { FaArrowLeft, FaArchive } from "react-icons/fa";
 import Link from "next/link";
+import api from "@/app/api";
 
 export default function EditRepositoryPage() {
   const { id } = useParams();
   const router = useRouter();
   const [repository, setRepository] = useState(null);
+  const [loading, setLoading] = useState(false);
+
+  const fetchRepository = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/repositories?_id=${id}`);
+      setRepository(response.data.items[0] || {});
+    } catch (error) {
+      console.error("Error fetching repositories:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   useEffect(() => {
-    // Simulate fetching repository data
-    const mockRepository = {
-      id,
-      name: "Repository A",
-      description: "A sample repository",
-      url: "https://example.com/repo-a",
-      large_file: false,
-      file_path: "",
-      parameters: [
-        { name: "filter", type: "string" },
-        { name: "limit", type: "number" },
-      ],
-    };
-    setRepository(mockRepository);
-  }, [id]);
+    fetchRepository();
+  }, []);
 
   const handleUpdate = (data) => {
     console.log("Updating repository:", data);

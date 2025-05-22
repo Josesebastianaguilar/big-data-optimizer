@@ -15,25 +15,32 @@ async def get_repositories(request:  Request):
     """Get all repositories with pagination and filtering."""
     try:
         parameters = get_query_params(request)
-        total_items = await db["repositories"].count_documents(parameters["query_params"])
-        total_pages = (total_items // parameters["limit"]) + (1 if total_items % parameters["limit"] > 0 else 0)
-        current_page = parameters["page"]
-        repositories = await db["repositories"].find(parameters["query_params"]).skip(parameters["offset"]).limit(parameters["limit"]).to_list(length=None)
+        print('parameters["query_params"]', parameters["query_params"])
+        totalItems = await db["repositories"].count_documents(parameters["query_params"])
+        page = parameters["page"]
+        totalPages = totalItems // parameters["limit"] + (1 if totalItems % parameters["limit"] > 0 else 0)
+        repositories = await db["repositories"].find(parameters["query_params"], parameters["select"]).skip(parameters["offset"]).limit(parameters["limit"]).to_list(length=None)
 
-        return Response(status_code=200, content=json_util.dumps({"total_items": total_items, "total_pages": total_pages, "current_page": current_page, "items": repositories}), media_type="application/json")
+        return Response(status_code=200, content=json_util.dumps({"totalPages": totalPages, "page": page, "items": repositories}), media_type="application/json")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching repositories: {str(e)}")
 
 @router.put("/{repository_id}")
-async def update_repository(current_user: dict = Depends(get_current_user)) -> dict:
+async def update_repository(
+    name: str = Form(...),
+    description: str = Form(None),
+    url: str = Form(...),
+    large_file: bool = Form(False),
+    file_path: str = Form(""),
+    file: UploadFile = File(None),
+    current_user: dict = Depends(get_current_user)
+    ) -> dict:
     """Update a repository by ID."""
     
-    repository["_id"] = ObjectId(repository_id)
-    return await upsert_repository(repository, current_user)
+    return await upsert_repository(repository_id, name, description, url, large_file, file_path, file, current_user, "update")
 
 @router.post("/")
 async def create_repository(
-    id: str = Form(None),
     name: str = Form(...),
     description: str = Form(None),
     url: str = Form(...),
@@ -44,7 +51,7 @@ async def create_repository(
 ) -> dict:
     """Create a new repository."""
     
-    return await upsert_repository(id, name, description, url, large_file, file_path, file, current_user, "create")
+    return await upsert_repository(None, name, description, url, large_file, file_path, file, current_user, "create")
 
 @router.delete("/{repository_id}")
 async def delete_repository(repository_id: str, current_user: dict = Depends(get_current_user)) -> dict:

@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useRef } from "react";
 
 export default function RepositoryForm({
   type, // "create" or "edit"
@@ -15,6 +15,7 @@ export default function RepositoryForm({
   const [filePath, setFilePath] = useState(initialData.file_path || "");
   const [parameters, setParameters] = useState(initialData.parameters || []);
   const [changeFile, setChangeFile] = useState(false); // For edit view
+  const fileInputRef = useRef(null);
 
   const handleSubmit = (e) => {
     e.preventDefault();
@@ -35,22 +36,18 @@ export default function RepositoryForm({
     formData.append("name", name);
     formData.append("description", description);
     formData.append("url", url);
-    formData.append("large_file", largeFile);
-    formData.append("file_path", largeFile ? filePath : null);
-    formData.append("file", !largeFile ? file : null);
+    if (type === 'create' || changeFile) {
+      formData.append("large_file", largeFile);
+      formData.append("file_path", largeFile ? filePath : null);
+
+      if (!largeFile) formData.append("file", file);
+    }
 
     if (type === 'edit'){
       formData.append("parameters", parameters);
     }
 
     onSubmit(formData);
-  };
-
-  const handleLargeFileToggle = (e) => {
-    setLargeFile(e.target.checked);
-    if (!e.target.checked) {
-      setFilePath(""); // Reset filePath when largeFile is unchecked
-    }
   };
 
   return (
@@ -91,52 +88,47 @@ export default function RepositoryForm({
       {/* File or Large File */}
       {type === "edit" && (
         <div>
-          <label className="block text-sm font-medium text-gray-700">
-            Change File or Large File
-          </label>
           <input
             type="checkbox"
             checked={changeFile}
             onChange={(e) => setChangeFile(e.target.checked)}
             className="mr-2"
           />
-          <span>Check to change file or enable large file</span>
+          <span>Change file or set a large filepath</span>
         </div>
       )}
       {(type === "create" || changeFile) && (
         <>
           <div>
-            <label className="block text-sm font-medium text-gray-700">Large File</label>
             <input
               type="checkbox"
               checked={largeFile}
-              onChange={handleLargeFileToggle}
-              className="mr-2"
+              onChange={(e) => setLargeFile(e.target.checked)}
+              className="cursor-pointer mr-2"
             />
-            <span>Enable Large File</span>
+            <span>Is Large File</span>
           </div>
-          {largeFile ? (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">File Path</label>
-              <input
-                type="text"
-                value={filePath}
-                onChange={(e) => setFilePath(e.target.value)}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                required
-              />
-            </div>
-          ) : (
-            <div>
-              <label className="block text-sm font-medium text-gray-700">CSV File</label>
-              <input
-                type="file"
-                onChange={(e) => setFile(e.target.files[0])}
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
-                required={type === "create"}
-              />
-            </div>
-          )}
+          <div className={largeFile ? 'visible':  'hidden'}>
+            <label className="block text-sm font-medium text-gray-700">File Path</label>
+            <input
+              type="text"
+              value={filePath}
+              onChange={(e) => setFilePath(e.target.value)}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              required={largeFile}
+            />
+            <label className="mt-2 block text-sm font-medium text-gray-700">Make sure the file path entered corresponds to a file uploaded to the server.</label>
+          </div>
+          <div className={largeFile ? 'hidden':  'visible'}>
+            <label className="block text-sm font-medium text-gray-700">CSV File</label>
+            <input
+              type="file"
+              accept='text/csv'
+              onChange={(e) => setFile(e.target.files[0])}
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+              required={type === "create" && !largeFile}
+            />
+          </div>
         </>
       )}
 
@@ -155,7 +147,7 @@ export default function RepositoryForm({
                     updatedParams[index].name = e.target.value;
                     setParameters(updatedParams);
                   }}
-                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="flex-1 px-3 py-2 border bg-gray-100 border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                   placeholder="Parameter Name"
                   disabled
                 />
@@ -166,7 +158,7 @@ export default function RepositoryForm({
                     updatedParams[index].type = e.target.value;
                     setParameters(updatedParams);
                   }}
-                  className="px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
+                  className="cursor-pointer px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
                   <option value="string">String</option>
                   <option value="number">Number</option>

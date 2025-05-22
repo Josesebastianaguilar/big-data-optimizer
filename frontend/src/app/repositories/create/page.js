@@ -12,15 +12,13 @@ import api from "@/app/api";
 
 export default function CreateRepositoryPage() {
   const router = useRouter();
-  const { token, role } = useAuth();
+  const { role } = useAuth();
   useEffect(() => {
-    console.log('token', token);
-    console.log('role', role);
-    if (!token || role !== "admin") {
+    if (role && role !== "admin") {
       router.push("/");
     }
   }
-  , [token, role, router]);
+  , []);
 
   const handleCreate = async (data) => {
     const response = await api.post("/repositories", data)
