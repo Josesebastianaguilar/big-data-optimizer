@@ -21,8 +21,8 @@ export default function CreateRepositoryPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   , [role]);
 
-  const handleCreate = async (data) => {
-    await api.post("/repositories", data)
+  const handleCreate = (data) => {
+    return api.post("/repositories", data)
   };
 
   return (

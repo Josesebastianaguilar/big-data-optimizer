@@ -18,15 +18,22 @@ export default function RepositoriesPage() {
   const [page, setPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [limit, setLimit] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
   
   const fetchRepositories = async (newPage = 1, newLimit = 1) => {
     try {
       setLoading(true);
       const response = await api.get(`/repositories?page=${newPage}&limit=${newLimit}`);
-      setPage(newPage || 1);
-      setLimit(newLimit || 10);
-      setRepositories(response.data.items);
-      setTotalPages(response.data.totalPages);
+      if (page > response.data.totalPages) {
+        fetchRepositories(1, 10);
+      }
+      else {
+        setPage(newPage || 1);
+        setLimit(newLimit || 10);
+        setRepositories(response.data.items);
+        setTotalPages(response.data.totalPages);
+        setTotalItems(response.data.totalItems);
+      }
     } catch (error) {
       console.error("Error fetching repositories:", error);
     } finally {
@@ -49,15 +56,13 @@ export default function RepositoriesPage() {
 
   const confirmDelete = async() => {
     try {
-      setLoading(true);
       await api.delete(`/repositories/${repositoryToDelete._id.$oid}`);
       setRepositories(prev => prev.filter((repo) => repo._id.$oid !== repositoryToDelete._id.$oid));
       setShowModal(false);
       setRepositoryToDelete(null);
+      setTotalItems(prev => prev - 1);
     } catch (error) {
       console.error("Error deleting repository:", error);
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -83,7 +88,7 @@ export default function RepositoriesPage() {
             Repositories
           </h1>
         </div>
-        {loading&& <FaSpinner className="animate-spin inline mr-2" />}
+        {loading&& <div className="flex justify-center min-w-full"><FaSpinner className="text-center animate-spin inline mr-2 h-8 w-8" /></div>}
         {!loading && <div className="overflow-x-auto w-full mb-4 sm:mb-0">
           <div className="flex justify-end my-2">
             <PageSize page={page} value={limit} onChange={fetchRepositories}/>
@@ -135,7 +140,7 @@ export default function RepositoriesPage() {
                     </Link>}
                     {repo.data_ready && <Link
                       title="Show Repository Records"
-                      href={`/records?repository=repository${repo._id.$oid}`}
+                      href={`/records?repository=${repo._id.$oid}`}
                       className="inline-block"
                     >
                       <FaList className="w-4 h-4 text-purple-500 hover:text-purple-600" />
@@ -170,6 +175,9 @@ export default function RepositoriesPage() {
             <Paginator
               page={page}
               totalPages={totalPages}
+              module="repositories"
+              limit={limit}
+              totalItems={totalItems}
               onPageChange={fetchRepositories}
               activeBackgroundColor="bg-sky-600"
             />

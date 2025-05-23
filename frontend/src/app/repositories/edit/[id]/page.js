@@ -38,8 +38,8 @@ export default function EditRepositoryPage() {
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [role]);
 
-  const handleUpdate = async (data) => {
-    await api.put(`/repositories/${repository._id.$oid}`, data)
+  const handleUpdate = (data) => {
+    return api.put(`/repositories/${repository._id.$oid}`, data)
   };
 
   return (

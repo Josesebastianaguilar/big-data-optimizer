@@ -21,7 +21,7 @@ async def get_repositories(request:  Request):
         totalPages = totalItems // parameters["limit"] + (1 if totalItems % parameters["limit"] > 0 else 0)
         repositories = await db["repositories"].find(parameters["query_params"], parameters["select"]).skip(parameters["offset"]).limit(parameters["limit"]).to_list(length=None)
 
-        return Response(status_code=200, content=json_util.dumps({"totalPages": totalPages, "page": page, "items": repositories}), media_type="application/json")
+        return Response(status_code=200, content=json_util.dumps({"totalItems": totalItems, "totalPages": totalPages, "page": page, "items": repositories}), media_type="application/json")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error fetching repositories: {str(e)}")
 
@@ -67,6 +67,6 @@ async def delete_repository(repository_id: str, current_user: dict = Depends(get
         await db["records"].delete_many({"repository": ObjectId(repository_id)})
         await db["processes"].delete_many({"repository": ObjectId(repository_id)})
 
-        return {"message": "Repository deleted successfully"}
+        return Response(status_code=200, content=json_util.dumps({"_id": repository_id, "message": "Repository deleted successfully"}), media_type="application/json")
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error deleting repository: {str(e)} and all correspinding data")

@@ -53,15 +53,14 @@ export default function RepositoryForm({
         formData.append("parameters", JSON.stringify(parameters));
       }
       
-      console.log('formData', formData);
       await onSubmit(formData);
+
       router.push("/repositories");
     } catch (error) {
       console.error("Error submitting form:", error);
     } finally{
       setLoading(false);
     }
-    
   };
 
   return (

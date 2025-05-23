@@ -53,7 +53,7 @@ export default function ViewRepositoryPage() {
             </Link>}
             {repository?.data_ready && <Link
               title="Show Repository Records"
-              href={`/records?repository${repository._id.$oid}`}
+              href={`/records?repository=${repository._id.$oid}`}
               className="inline-block bg-purple-500 text-white py-2 mr-2 px-4 rounded-md hover:bg-purple-600 focus:outline-none focus:ring-2 focus:ring-purple-600 focus:ring-offset-2"
             >
               <FaList className="w-4 h-4" />
@@ -98,7 +98,7 @@ export default function ViewRepositoryPage() {
               </a>
             </p>}
             <p className="text-lg">
-              <strong>File Size:</strong> {repository.file_size.toFixed(2) || "N/A"} MB
+              <strong>File Size:</strong> {repository.file_size?.toFixed(2) || "N/A"} MB
             </p>
             <p className="text-lg">
               <strong>Initial # of items:</strong> {repository.original_data_size}

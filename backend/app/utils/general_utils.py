@@ -55,6 +55,8 @@ def get_query_params(request: Request) -> dict:
         query_params.pop("limit")
     if "page" in query_params:
         query_params.pop("page")
+    if "select" in query_params:
+        query_params.pop("select")
         
     if "_id" in query_params:
         try:

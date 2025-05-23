@@ -1,7 +1,22 @@
-import Link from "next/link";
+"use client";
+
+import { FaSpinner } from "react-icons/fa";
+import { useState } from "react";
 
 export default function ConfirmationModal({ isOpen, title, message, onConfirm, onCancel }) {
+  const [loading, setLoading] = useState(false);
   if (!isOpen) return null;
+  const handleConfirm = async () => {
+    try {
+      setLoading(true);
+      await onConfirm();
+    }
+    catch (error) {
+      console.error("Error confirming action:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
 
   return (
     <div className="fixed inset-0 modal-overlay flex items-center justify-center z-40">
@@ -11,14 +26,17 @@ export default function ConfirmationModal({ isOpen, title, message, onConfirm, o
         <div className="flex justify-end space-x-4">
           <button
             onClick={onCancel}
+            disabled={loading}
             className="cursor-pointer bg-gray-500 text-white py-2 px-4 rounded-md hover:bg-gray-600"
           >
             Cancel
           </button>
           <button
-            onClick={onConfirm}
+            onClick={handleConfirm}
+            disabled={loading}
             className="cursor-pointer bg-red-500 text-white py-2 px-4 rounded-md hover:bg-red-600"
           >
+            {loading && <FaSpinner className="animate-spin inline mr-2 white" />}
             Confirm
           </button>
         </div>

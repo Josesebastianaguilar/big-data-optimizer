@@ -1,9 +1,9 @@
 import React from "react";
 
-export default function Paginator({ page, totalPages, onPageChange , activeBackgroundColor = 'bg-blue-600' }) {
+export default function Paginator({ page, totalPages, totalItems, onPageChange, limit, module, activeBackgroundColor = 'bg-blue-600' }) {
   const handleClick = (page_element) => {
     if (page_element !== page && page_element > 0 && page_element <= totalPages) {
-      onPageChange(page_element);
+      onPageChange(page_element, limit);
     }
   };
 
@@ -20,7 +20,7 @@ export default function Paginator({ page, totalPages, onPageChange , activeBackg
   return (
     <div>
       {totalPages > 5 && <div className="flex justify-end my-2">
-        There are {totalPages} pages of repositories.
+        There are and {totalPages} pages of {module} ({totalItems} items).
       </div>}
       <nav className="flex justify-center my-4">
         {totalPages > 5 && page > 5 && <button
@@ -41,7 +41,7 @@ export default function Paginator({ page, totalPages, onPageChange , activeBackg
         {getPages().map((page_number) => (
           <button
             key={`page_${page_number}`}
-            className={`cursor-pointer px-3 py-1 mx-1 rounded ${page === page_number ? (activeBackgroundColor + " text-white") : "bg-gray-200 hover:bg-gray-300"}`}
+            className={`px-3 py-1 mx-1 rounded ${page === page_number ? (activeBackgroundColor + " text-white") : "cursor-pointer bg-gray-200 hover:bg-gray-300"}`}
             onClick={() => handleClick(page_number)}
             disabled={page === page_number}
           >
