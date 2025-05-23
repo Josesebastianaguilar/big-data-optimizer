@@ -1,12 +1,15 @@
 "use client";
 
-import { useState, useRef } from "react";
+import { useState } from "react";
+import { FaSpinner } from "react-icons/fa";
+import { useRouter } from "next/navigation";
 
 export default function RepositoryForm({
   type, // "create" or "edit"
   initialData = {}, // Initial data for edit view
   onSubmit,
 }) {
+  const router = useRouter();
   const [name, setName] = useState(initialData.name || "");
   const [description, setDescription] = useState(initialData.description || "");
   const [url, setUrl] = useState(initialData.url || "");
@@ -15,39 +18,50 @@ export default function RepositoryForm({
   const [filePath, setFilePath] = useState(initialData.file_path || "");
   const [parameters, setParameters] = useState(initialData.parameters || []);
   const [changeFile, setChangeFile] = useState(false); // For edit view
-  const fileInputRef = useRef(null);
+  const [loading, setLoading] = useState(false);
 
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-
+    setLoading(true);
+    
     // Validation for create view
     if (type === "create" && !largeFile && !file) {
       alert("You must upload a CSV file or enable 'Large File' and provide a file path.");
+      setLoading(false);
       return;
     }
-
+    
     // Validation for edit view
     if (type === "edit" && changeFile && !largeFile && !file) {
       alert("You must upload a CSV file or enable 'Large File' and provide a file path.");
+      setLoading(false);
       return;
     }
-
-    const formData = new FormData();
-    formData.append("name", name);
-    formData.append("description", description);
-    formData.append("url", url);
-    if (type === 'create' || changeFile) {
-      formData.append("large_file", largeFile);
-      formData.append("file_path", largeFile ? filePath : null);
-
-      if (!largeFile) formData.append("file", file);
+    try {
+      const formData = new FormData();
+      formData.append("name", name);
+      formData.append("description", description);
+      formData.append("url", url);
+      if (type === 'create' || changeFile) {
+        formData.append("large_file", largeFile);
+        formData.append("file_path", largeFile ? filePath : null);
+        
+        if (!largeFile) formData.append("file", file);
+      }
+      
+      if (type === 'edit'){
+        formData.append("parameters", JSON.stringify(parameters));
+      }
+      
+      console.log('formData', formData);
+      await onSubmit(formData);
+      router.push("/repositories");
+    } catch (error) {
+      console.error("Error submitting form:", error);
+    } finally{
+      setLoading(false);
     }
-
-    if (type === 'edit'){
-      formData.append("parameters", parameters);
-    }
-
-    onSubmit(formData);
+    
   };
 
   return (
@@ -59,6 +73,7 @@ export default function RepositoryForm({
           type="text"
           value={name}
           onChange={(e) => setName(e.target.value)}
+          disabled={loading}
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
           required
         />
@@ -70,6 +85,7 @@ export default function RepositoryForm({
         <textarea
           value={description}
           onChange={(e) => setDescription(e.target.value)}
+          disabled={loading}
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
         />
       </div>
@@ -81,6 +97,7 @@ export default function RepositoryForm({
           type="url"
           value={url}
           onChange={(e) => setUrl(e.target.value)}
+          disabled={loading}
           className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
         />
       </div>
@@ -92,7 +109,8 @@ export default function RepositoryForm({
             type="checkbox"
             checked={changeFile}
             onChange={(e) => setChangeFile(e.target.checked)}
-            className="mr-2"
+            className="cursor-pointer mr-2"
+            disabled={loading}
           />
           <span>Change file or set a large filepath</span>
         </div>
@@ -103,6 +121,7 @@ export default function RepositoryForm({
             <input
               type="checkbox"
               checked={largeFile}
+              disabled={loading}
               onChange={(e) => setLargeFile(e.target.checked)}
               className="cursor-pointer mr-2"
             />
@@ -114,6 +133,7 @@ export default function RepositoryForm({
               type="text"
               value={filePath}
               onChange={(e) => setFilePath(e.target.value)}
+              disabled={loading}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               required={largeFile}
             />
@@ -125,6 +145,7 @@ export default function RepositoryForm({
               type="file"
               accept='text/csv'
               onChange={(e) => setFile(e.target.files[0])}
+              disabled={loading}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               required={type === "create" && !largeFile}
             />
@@ -158,6 +179,7 @@ export default function RepositoryForm({
                     updatedParams[index].type = e.target.value;
                     setParameters(updatedParams);
                   }}
+                  disabled={loading}
                   className="cursor-pointer px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
                 >
                   <option value="string">String</option>
@@ -172,8 +194,10 @@ export default function RepositoryForm({
       {/* Submit Button */}
       <button
         type="submit"
+        disabled={loading}
         className="cursor-pointer w-full sm:w-1/2 md:w-2/5 lg:w-1/5 bg-sky-600 text-white py-2 px-4 rounded-md hover:bg-sky-700 focus:outline-none focus:ring-2 focus:ring-sky-500 focus:ring-offset-2"
       >
+        {loading && <FaSpinner className="animate-spin inline mr-2 white" />}
         {type === "create" ? "Create" : "Update"}
       </button>
     </form>

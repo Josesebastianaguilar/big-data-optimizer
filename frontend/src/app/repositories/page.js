@@ -47,12 +47,18 @@ export default function RepositoriesPage() {
     setShowModal(true);
   };
 
-  const confirmDelete = () => {
-    setRepositories((prev) =>
-      prev.filter((repo) => repo._id !== repositoryToDelete._id)
-    );
-    setShowModal(false);
-    setRepositoryToDelete(null);
+  const confirmDelete = async() => {
+    try {
+      setLoading(true);
+      await api.delete(`/repositories/${repositoryToDelete._id.$oid}`);
+      setRepositories(prev => prev.filter((repo) => repo._id.$oid !== repositoryToDelete._id.$oid));
+      setShowModal(false);
+      setRepositoryToDelete(null);
+    } catch (error) {
+      console.error("Error deleting repository:", error);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const cancelDelete = () => {
@@ -64,7 +70,7 @@ export default function RepositoriesPage() {
     <div className="min-h-screen flex flex-col items-center justify-between bg-gray-50 text-gray-800">
       <Header backgroundColor="bg-sky-600" title="Repositories" />
       <main className="w-full max-w-6xl px-4">
-        <div className="flex sm:mt-0 justify-between items-center mb-6">
+        <div className="flex sm:mt-0 justify-between items-center mb-6 mt-6 sm:mt-0">
           {token && role === 'admin' && <Link
             href="/repositories/create"
             className="bg-sky-600 hover:bg-sky-700 text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-700 focus:ring-offset-2"
@@ -120,20 +126,20 @@ export default function RepositoriesPage() {
                     {repo.current_data_size}
                   </td>
                   <td className="px-6 py-4 text-sm text-gray-800 space-x-2 text-center">
-                    {token && <Link
+                    {token && repo.data_ready && <Link
                       title="Show Repository Processes"
                       href={`/processes?repository=${repo._id.$oid}`}
                       className="inline-block"
                     >
                       <FaProjectDiagram className="w-4 h-4 text-orange-500 hover:text-orange-600" />
                     </Link>}
-                    <Link
+                    {repo.data_ready && <Link
                       title="Show Repository Records"
                       href={`/records?repository=repository${repo._id.$oid}`}
                       className="inline-block"
                     >
                       <FaList className="w-4 h-4 text-purple-500 hover:text-purple-600" />
-                    </Link>
+                    </Link>}
                     <Link
                       title="Show Repository"
                       href={`/repositories/show/${repo._id.$oid}`}
@@ -141,14 +147,14 @@ export default function RepositoriesPage() {
                     >
                       <FaSearch className="w-4 h-4 text-stone-700 hover:text-stone-800" />
                     </Link>
-                    {token && role === 'admin' && <Link
+                    {token && role === 'admin' && repo.data_ready && <Link
                       title="Edit Repository"
                       href={`/repositories/edit/${repo._id.$oid}`}
                       className="inline-block"
                     >
                       <FaEdit className="w-4 h-4 text-green-500 hover:text-green-600" />
                     </Link>}
-                    {token && role === 'admin' && <button
+                    {token && role === 'admin' && repo.data_ready && <button
                       title="Delete Repository"
                       onClick={() => handleDeleteClick(repo)}
                       className="inline-block"
@@ -175,7 +181,7 @@ export default function RepositoriesPage() {
       <ConfirmationModal
         isOpen={showModal}
         title="Confirm Deletion"
-        message={`Are you sure you want to delete "${repositoryToDelete?.name}"?`}
+        message={`Are you sure you want to delete "${repositoryToDelete?.name}" with all its records and processes?`}
         onConfirm={confirmDelete}
         onCancel={cancelDelete}
       />

@@ -146,7 +146,7 @@ def validate_repository_file(repository: dict):
         if mime_type != "text/csv":
             raise HTTPException(status_code=400, detail="Invalid file type. Only CSV files are allowed.")
 
-async def upsert_repository(repository_id, name, description, url, large_file, file_path, file, current_user: dict, upsert_type: str) -> dict:
+async def upsert_repository(repository_id, name, description, url, large_file, file_path, file, parameters, current_user: dict, upsert_type: str) -> dict:
     """Upsert a repository."""
     if current_user["role"] != "admin":
         raise HTTPException(status_code=403, detail="Not enough permissions")
@@ -176,15 +176,16 @@ async def upsert_repository(repository_id, name, description, url, large_file, f
     elif upsert_type == "update":
         validate_repository_file(repository)
         now = datetime.now()
-        repository_data = {"name": repository["name"], "description": repository["description"], "url": repository["url"], "version": 0, "updated_at": now}
-        if hasattr(repository, "file") or repository["large_file"] is True:
+        repository_data = {"name": repository["name"], "description": repository["description"], "url": repository["url"], "version": 0, "updated_at": now, "parameters": parameters}
+        if ("file" in repository and repository["file"] is not None) or repository["large_file"] is True:
+            repository_data["parameters"] = []
             repository_data["data_ready"] = False
             repository_data["valid"] = False
             repository_data["file_size"] = None
             repository_data["original_data_size"] = None
             repository_data["current_data_size"] = None
             repository_data["data_updated_at"] = None
-            print('repository_data', repository_data)
+            repository["_id"] = repository_id
 
         try:
             result = await db["repositories"].update_one({"_id": ObjectId(repository_id)}, {"$set": repository_data})
@@ -193,10 +194,10 @@ async def upsert_repository(repository_id, name, description, url, large_file, f
                 file_content = await repository["file"].read()
                 repository["file"] = file_content
             
-            if (hasattr(repository, 'file') and repository["file"] is not None) or repository["large_file"] is True:
+            if ("file" in repository and repository["file"] is not None) or repository["large_file"] is True:
                 asyncio.create_task(process_file(repository, True))
             
-            return Response(status_code=200, content=json.dumps({"id": str(repository["_id"]), "message": "Repository updated successfully"}), media_type="application/json")
+            return Response(status_code=200, content=json.dumps({"id": str(repository_id), "message": "Repository updated successfully"}), media_type="application/json")
 
         except Exception as e:
             raise HTTPException(status_code=500, detail=f"Error updating repository: {str(e)}")

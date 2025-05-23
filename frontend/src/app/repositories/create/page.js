@@ -18,11 +18,11 @@ export default function CreateRepositoryPage() {
       router.push("/");
     }
   }
-  , []);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  , [role]);
 
   const handleCreate = async (data) => {
-    const response = await api.post("/repositories", data)
-    console.log('response', response);
+    await api.post("/repositories", data)
   };
 
   return (

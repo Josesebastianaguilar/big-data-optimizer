@@ -15,7 +15,7 @@ export default function Header({ backgroundColor, title }) {
       {!title && (<h1 className="text-4xl font-bold">Welcome to Big Data Optimizer</h1>)}
       {title && (<h1 className="text-4xl font-bold">
         <span>Big Data Optimizer&nbsp;</span>
-        <FaArrowRight className="w-6 h-6 inline" />
+        <FaArrowRight className="w-6 h-6 inline invisible sm:visible" />
         <span>&nbsp;{title}</span>
         </h1>)}
       {!title && (<p className="mt-4 text-lg">

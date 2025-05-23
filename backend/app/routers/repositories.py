@@ -6,6 +6,7 @@ from app.utils.repositories_utils import upsert_repository
 from app.database import db
 from bson.objectid import ObjectId
 from bson import json_util
+from typing import List, Any
 
 router = APIRouter()
 
@@ -15,7 +16,6 @@ async def get_repositories(request:  Request):
     """Get all repositories with pagination and filtering."""
     try:
         parameters = get_query_params(request)
-        print('parameters["query_params"]', parameters["query_params"])
         totalItems = await db["repositories"].count_documents(parameters["query_params"])
         page = parameters["page"]
         totalPages = totalItems // parameters["limit"] + (1 if totalItems % parameters["limit"] > 0 else 0)
@@ -27,17 +27,20 @@ async def get_repositories(request:  Request):
 
 @router.put("/{repository_id}")
 async def update_repository(
+    repository_id: str,
     name: str = Form(...),
     description: str = Form(None),
     url: str = Form(...),
     large_file: bool = Form(False),
     file_path: str = Form(""),
+    parameters: str = Form(""),
     file: UploadFile = File(None),
     current_user: dict = Depends(get_current_user)
     ) -> dict:
     """Update a repository by ID."""
+    parameters = json_util.loads(parameters) if parameters else []
     
-    return await upsert_repository(repository_id, name, description, url, large_file, file_path, file, current_user, "update")
+    return await upsert_repository(repository_id, name, description, url, large_file, file_path, file, parameters, current_user, "update")
 
 @router.post("/")
 async def create_repository(
@@ -51,7 +54,7 @@ async def create_repository(
 ) -> dict:
     """Create a new repository."""
     
-    return await upsert_repository(None, name, description, url, large_file, file_path, file, current_user, "create")
+    return await upsert_repository(None, name, description, url, large_file, file_path, file, [], current_user, "create")
 
 @router.delete("/{repository_id}")
 async def delete_repository(repository_id: str, current_user: dict = Depends(get_current_user)) -> dict:
