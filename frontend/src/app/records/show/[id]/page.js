@@ -11,6 +11,7 @@ import api from "@/app/api";
 
 
 export default function ShowRecordPage() {
+  const { role } = useAuth();
   const [loading, setLoading] = useState(true);
   const [repository, setRepository] = useState(null);
   const [record, setRecord] = useState(null);
@@ -53,7 +54,7 @@ export default function ShowRecordPage() {
       <Header backgroundColor="bg-purple-500" title="Records" />
       <main className="flex-grow max-w-2xl mx-auto w-full px-4 py-8">
         <div className="flex justify-end items-center mb-4">
-          {!loading && repository && <Link
+          {!loading && repository && role === 'admin' && <Link
               title="Edit Record"
               href={`/records/edit/${record._id.$oid}?repository=${repository?._id?.$oid}`}
               className="inline-block bg-green-500 text-white py-2 px-4 mr-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"

@@ -53,7 +53,7 @@ async def store_errors(process_id,  input_data_size, metrics, time_metrics, erro
 
 async def apply_filter(df: pd.DataFrame, processes: List[dict], utils, num_processes: int):
   input_filter_data_size = len(df)
-  filter_process_item = next((p for p in processes if p["task_process"] == ProcessName.FILTER), None)
+  filter_process_item = next((p for p in processes if p["task_process"] == ProcessName.filter), None)
   if not filter_process_item:
     raise ValueError("Filter process not found")
   filter_metrics = Queue()
@@ -90,7 +90,7 @@ async def apply_groupping(df: pd.DataFrame, processes: List[dict], utils, optimi
   if optimized is not True:
     df = df.to_dict(orient="records")
   input_group_data_size = len(df)
-  group_process_item = next((p for p in processes if p["task_process"] == ProcessName.GROUP), None)
+  group_process_item = next((p for p in processes if p["task_process"] == ProcessName.group), None)
   if not group_process_item:
     raise ValueError("Group process not found")
   group_metrics = Queue()
@@ -120,7 +120,7 @@ async def apply_groupping(df: pd.DataFrame, processes: List[dict], utils, optimi
 
 async def apply_aggregation(df: pd.DataFrame, processes: List[dict], utils):
   input_aggregation_data_size = len(df)
-  aggregation_process_item = next((p for p in processes if p["task_process"] == ProcessName.AGGREGATION), None)
+  aggregation_process_item = next((p for p in processes if p["task_process"] == ProcessName.aggregation), None)
   if not aggregation_process_item:
     raise ValueError("Aggregation process not found")
   aggregation_metrics = Queue()
@@ -148,31 +148,31 @@ async def apply_aggregation(df: pd.DataFrame, processes: List[dict], utils):
   
 
 async def process_data(df: pd.DataFrame, processes: List[Process], utils, num_processes, actions: List[ProcessName], optimized):
-  if ProcessName.FILTER in actions:
+  if ProcessName.filter in actions:
     try:
       filter_results = await apply_filter(df, processes, utils, num_processes)
-      if ProcessName.GROUP in actions and ProcessName.AGGREGATION in actions:
+      if ProcessName.group in actions and ProcessName.aggregation in actions:
         await apply_groupping(filter_results, processes, utils, optimized)
         await apply_aggregation(filter_results, processes, utils)
-      elif ProcessName.GROUP in actions:
+      elif ProcessName.group in actions:
         await apply_groupping(filter_results, processes, utils, optimized)
-      elif ProcessName.AGGREGATION in actions:
+      elif ProcessName.aggregation in actions:
         await apply_aggregation(filter_results, processes, utils)
     except Exception as e:
-      if ProcessName.GROUP in actions:
-        group_process = next((p for p in processes if p["task_process"] == ProcessName.GROUP), None)
+      if ProcessName.group in actions:
+        group_process = next((p for p in processes if p["task_process"] == ProcessName.group), None)
         if group_process:
           await db["processes"].update_one({"_id": group_process["_id"]}, {"$set": {"status": ProcessingStatus.FAILED, "errors": f"FILTER errors: {str(e)}", "updated_at": time.perf_counter()}})
-      if ProcessName.AGGREGATION in actions:
-        aggregation_process = next((p for p in processes if p["task_process"] == ProcessName.AGGREGATION), None)
+      if ProcessName.aggregation in actions:
+        aggregation_process = next((p for p in processes if p["task_process"] == ProcessName.aggregation), None)
         if aggregation_process:
           await db["processes"].update_one({"_id": aggregation_process["_id"]}, {"$set": {"status": ProcessingStatus.FAILED, "errors": f"FILTER errors: {str(e)}", "updated_at": time.perf_counter()}})
-  elif ProcessName.GROUP in actions and ProcessName.AGGREGATION in actions:
+  elif ProcessName.group in actions and ProcessName.aggregation in actions:
     await apply_groupping(df, processes, utils, optimized)
     await  apply_aggregation(df, processes, utils)
-  elif ProcessName.GROUP in actions:
+  elif ProcessName.group in actions:
     await apply_groupping(df, processes, utils, optimized)
-  elif ProcessName.AGGREGATION in actions:
+  elif ProcessName.aggregation in actions:
     await apply_aggregation(df, processes, utils)
 
 async def start_cron_initiated_process(process_id: ObjectId, repository_id: ObjectId, actions: List[ProcessName], iteration: int = 1):

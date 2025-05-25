@@ -7,6 +7,7 @@ import { jwtDecode } from "jwt-decode";
 const AuthContext = createContext();
 
 export function AuthProvider({ children }) {
+  const [authLoading, setAuthLoading] = useState(true);
   const router = useRouter();
   const [token, setToken] = useState(null);
   const [username, setUsername] = useState(null);
@@ -23,24 +24,30 @@ export function AuthProvider({ children }) {
   };
 
   useEffect(() => {
-    const storedToken = localStorage.getItem("token");
-    const storedUsername = localStorage.getItem("username");
-    const storedRole = localStorage.getItem("role");
-    if (storedToken && !isTokenExpired(storedToken)) {
-      setToken(storedToken);
-      if (storedUsername) setUsername(JSON.parse(storedUsername));
-      if (storedRole) setRole(JSON.parse(storedRole));
-    } else {
-      setToken(null);
-      setUsername(null);
-      setRole(null);
-      localStorage.removeItem("token");
-      localStorage.removeItem("username");
-      localStorage.removeItem("role");
-      
-      if (storedToken && isTokenExpired(storedToken)) {
-        router.push("/login");
+    try {
+      const storedToken = localStorage.getItem("token");
+      const storedUsername = localStorage.getItem("username");
+      const storedRole = localStorage.getItem("role");
+      if (storedToken && !isTokenExpired(storedToken)) {
+        setToken(storedToken);
+        if (storedUsername) setUsername(JSON.parse(storedUsername));
+        if (storedRole) setRole(JSON.parse(storedRole));
+      } else {
+        setToken(null);
+        setUsername(null);
+        setRole(null);
+        localStorage.removeItem("token");
+        localStorage.removeItem("username");
+        localStorage.removeItem("role");
+        
+        if (storedToken && isTokenExpired(storedToken)) {
+          router.push("/login");
+        }
       }
+    } catch (error) {
+      console.error("Error loading token from localStorage:", error);
+    } finally {
+      setAuthLoading(false);
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
@@ -63,7 +70,7 @@ export function AuthProvider({ children }) {
   };
 
   return (
-    <AuthContext.Provider value={{ token, username, role, login, logout }}>
+    <AuthContext.Provider value={{ token, username, role, login, logout, authLoading }}>
       {children}
     </AuthContext.Provider>
   );

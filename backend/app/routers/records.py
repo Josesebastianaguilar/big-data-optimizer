@@ -12,7 +12,7 @@ from datetime import datetime
 router = APIRouter()
 
 @router.get("/{repository_id}")
-async def get_records(repository_id: str,request: Request, current_user: dict = Depends(get_current_user)) -> dict:
+async def get_records(repository_id: str, request: Request, current_user: dict = Depends(get_current_user)) -> dict:
     """
     Get records for a specific repository.
     """
@@ -22,7 +22,6 @@ async def get_records(repository_id: str,request: Request, current_user: dict = 
         totalItems = await db["records"].count_documents(parameters["query_params"])
         page = parameters["page"]
         totalPages = totalItems // parameters["limit"] + (1 if totalItems % parameters["limit"] > 0 else 0)
-        print('parameters["query_params"]', parameters["query_params"])
         
         records = await db["records"].find(parameters["query_params"], parameters["select"]).skip(parameters["offset"]).limit(parameters["limit"]).to_list(length=None)
         

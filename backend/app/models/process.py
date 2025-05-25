@@ -5,9 +5,9 @@ from bson import ObjectId
 from enum import Enum
 
 class ProcessName(str, Enum):
-  FILTER = "filter"
-  GROUP = "group"
-  AGGREGATION = "aggregation"
+  filter = "filter"
+  group = "group"
+  aggregation = "aggregation"
 
 class Trigger(str, Enum):
   USER = "user"
@@ -20,14 +20,14 @@ class ProcessingStatus(str, Enum):
 
 class Process(BaseModel):
   _id: Optional[ObjectId]
-  task_process: ProcessName
-  actions: List[ProcessName]
-  status: ProcessingStatus
+  task_process: str
+  actions: List[str]
+  status: str
   repository: ObjectId
   process_id: ObjectId
   optimized: bool
   parameters: List[Any]
-  trigger_type: Trigger
+  trigger_type: str
   start_time: Optional[Any]
   end_time: Optional[Any]
   duration: Optional[Any]

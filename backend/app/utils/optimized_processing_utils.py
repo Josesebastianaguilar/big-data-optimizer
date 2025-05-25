@@ -16,23 +16,24 @@ def map_groupped_records(grouped_data: pd.core.groupby.generic.DataFrameGroupBy,
     group_mapping = {}
 
     for group_key, group_df in grouped:
-        # Extract the values of the property column for each group
+        # Extract the values of the property parameter for each group
         group_mapping[group_key] = group_df[map_property].tolist()
 
     return group_mapping
 
 
-def filter_chunk(chunk: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.DataFrame:
+def filter_chunk(chunk: pd.DataFrame, filters: List[Any]) -> pd.DataFrame:
     """
     Filter a chunk of DataFrame based on multiple conditions.
     Parameters:
     - chunk: A DataFrame chunk.
-    - filters: List of filter conditions (each with column, operator, and value).
+    - filters: List of filter conditions (each with parameter, operator, and value).
     Returns:
     - Filtered DataFrame chunk.
     """
     for condition in filters:
         op_func = OPERATORS[condition["operator"]]["action"]
+        value = condition["value"]
 
         if op_func == "contains":
             chunk = chunk[op_func(chunk[condition["name"]].astype(str), value)]
@@ -45,7 +46,7 @@ def filter_chunk(chunk: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.DataF
     return chunk
 
 
-async def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]], num_processes=1) -> pd.DataFrame:
+async def filter_data(df: pd.DataFrame, filters: List[Any], num_processes=1) -> pd.DataFrame:
     """
     Filter a DataFrame using multiple conditions in parallel.
     Parameters:
@@ -63,34 +64,31 @@ async def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]], num_proce
 
     return filtered_df.reset_index(drop=True)
 
-def group_data(df: pd.DataFrame, group_by_columns: List[str]) -> pd.core.groupby.generic.DataFrameGroupBy:
+def group_data(df: pd.DataFrame, group_by_parameters: List[str]) -> pd.core.groupby.generic.DataFrameGroupBy:
     """
-    Group data by specified columns.
+    Group data by specified parameter.
     Parameters:
     - df: pd.DataFrame - The input data.
-    - group_by_columns: List[str] - Columns to group by.
+    - group_by_parameters: List[str] - Parameters to group by.
     Returns:
     - pd.core.groupby.generic.DataFrameGroupBy: A DataFrameGroupBy object.
     """
-    return df.groupby(group_by_columns)
+    return df.groupby(group_by_parameters)
 
-def aggregate_data(df: pd.DataFrame, aggregation_columns: List[dict]) -> List[dict]:
+def aggregate_data(df: pd.DataFrame, aggregation_parameters: List[dict]) -> List[dict]:
     """
-    Perform aggregation on the DataFrame based on specified columns and functions.
+    Perform aggregation on the DataFrame based on specified parameters and functions.
     Parameters:
     - df: pd.DataFrame - The input data.
-    - aggregate_columns: List[dict] - Columns to aggregate and their respective functions.
+    - aggregation_parameters: List[dict] - Parameters to aggregate and their respective functions.
     Returns:
     - List[dict]: A list of dictionaries with aggregation results.
     """
     result = []
-    for column in aggregation_columns:
-        try:
-            agg_values = df[column["name"]].agg(column["aggregations"])
-            result.append({
-                "property": column,
-                **{agg_func: agg_values[agg_func] for agg_func in column["aggregations"]}
-            })
-        except Exception as e:
-            print(f"Skipping column '{column}' due to error: {e}")
+    for parameter in aggregation_parameters:
+        agg_values = df[parameter["name"]].agg(parameter["operations"])
+        result.append({
+            "property": parameter["name"],
+            **{agg_func: agg_values[agg_func] for agg_func in parameter["aggregations"]}
+        })
     return result

@@ -209,9 +209,15 @@ async def get_repository(repository_id: str) -> dict:
     repository = await db["repositories"].find_one({"_id": ObjectId(repository_id)})
     
     if not repository:
+        logging.error(f"Repository with ID {repository_id} not found.")
         raise HTTPException(status_code=404, detail="Repository not found")
     
-    if repository.get("data_ready") is not True:
+    if repository["data_ready"] is not True:
+        logging.error(f"Repository with ID {repository_id} has not been processed yet.")
         raise HTTPException(status_code=500, detail="Data has been not prepared yet")
+    
+    if repository["current_data_size"] is None or repository["current_data_size"] == 0:
+        logging.error(f"Repository with ID {repository_id} has no records.")
+        raise HTTPException(status_code=500, detail="Repository has no records")
     
     return repository

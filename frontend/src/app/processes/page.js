@@ -1,88 +1,107 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
+import Paginator from "@/components/Paginator";
+import PageSize from "@/components/PageSize";
+import { useSearchParams, useRouter } from "next/navigation";
 import { FaChevronDown, FaChevronRight, FaSearch, FaCheckCircle, FaWindowClose, FaRedo, FaArrowLeft, FaPlus, FaProjectDiagram, FaArchive, FaShareSquare } from "react-icons/fa"; 
+import { useAuth } from "@/context/AuthContext";
+import api from "@/app/api";
 import Link from "next/link";
 
-// Mock repository info
-const repository = {
-  id: 1,
-  name: "Repository A",
-  description: "Sample repository for demonstration.",
-  url: "https://example.com/repo-a",
-  version: "1.0.0",
-};
-
-// Mock processes data
-const mockProcesses = [
-  {
-    task_process: "Import Data",
-    actions: ["FILTER", "GROUP"],
-    status: "Completed",
-    process_id: "P-001",
-    optimized: true,
-    trigger_type: "SYSTEM",
-    start_time: "2024-05-01 10:00",
-    end_time: "2024-05-01 10:30",
-    duration: "30m",
-    input_data_size: "500 MB",
-    output_data_size: "300 MB",
-    errors: "",
-    validated: true,
-    valid: true,
-    created_at: "2024-05-01 09:55",
-    updated_at: "2024-05-01 10:31",
-    iteration: 1,
-    repository_version: "1.0.0",
-    _id: 1,
-  },
-  {
-    task_process: "Optimize Data",
-    actions: ["Optimize"],
-    status: "Failed",
-    process_id: "P-001",
-    optimized: false,
-    trigger_type: "USER",
-    start_time: "2024-05-01 10:35",
-    end_time: "2024-05-01 10:45",
-    duration: "10m",
-    input_data_size: "300 MB",
-    output_data_size: "0 MB",
-    errors: "Out of memory",
-    validated: false,
-    valid: false,
-    created_at: "2024-05-01 10:34",
-    updated_at: "2024-05-01 10:46",
-    iteration: 1,
-    repository_version: "1.0.0",
-    _id: 2,
-  },
-];
-
-// Helper to group processes
-function groupProcesses(processes) {
-  const grouped = { USER: {}, SYSTEM: {} };
-  processes.forEach(proc => {
-    const trigger = proc.trigger_type;
-    if (!grouped[trigger][proc.process_id]) {
-      grouped[trigger][proc.process_id] = { optimized: [], non_optimized: [] };
-    }
-    if (proc.optimized) {
-      grouped[trigger][proc.process_id].optimized.push(proc);
-    } else {
-      grouped[trigger][proc.process_id].non_optimized.push(proc);
-    }
-  });
-  return grouped;
-}
-
 export default function ProcessesListPage() {
+  const { token, role, authLoading } = useAuth();
   const [performance_types] = useState(['optimized', 'non_optimized']);
-  const [triggers] = useState(['USER', 'SYSTEM']);
-  const [groupedProcesses] = useState(() => groupProcesses(mockProcesses));
+  const [triggers] = useState(['user', 'system']);
+  const [groupedProcesses, setGroupedProcesses] = useState(null);
   const [openGroups, setOpenGroups] = useState({});
+  const [loading, setLoading] = useState(true);
+  const [processes, setProcesses] = useState([]);
+  const [page, setPage] = useState(1);
+  const [totalPages, setTotalPages] = useState(0);
+  const [limit, setLimit] = useState(10);
+  const [totalItems, setTotalItems] = useState(0);
+  const [repository, setRepository] = useState({});
+  const searchParams = useSearchParams();
+  const router = useRouter();
+
+  const groupProcesses = (processes) => {
+    const grouped = { user: {}, system: {} };
+    processes.forEach(proc => {
+      const trigger = proc.trigger_type;
+      if (!grouped[trigger][proc.process_id.$oid]) {
+        grouped[trigger][proc.process_id.$oid] = { optimized: [], non_optimized: [] };
+      }
+      if (proc.optimized) {
+        grouped[trigger][proc.process_id.$oid].optimized.push(proc);
+      } else {
+        grouped[trigger][proc.process_id.$oid].non_optimized.push(proc);
+      }
+    });
+    return grouped;
+  }
+
+  const fetchRepository = async () => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/repositories?_id=${searchParams.get("repository")}`);
+      setRepository(response.data.items[0]);
+    } catch (error) {
+      console.error("Error fetching repositories:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+  
+  const fetchProcesses = async (newPage = 1, newLimit = 1) => {
+    try {
+      setLoading(true);
+      const response = await api.get(`/processes/${searchParams.get("repository")}?page=${newPage}&limit=${newLimit}`);
+      if (page > response.data.totalPages && response.data.items.length) {
+        fetchProcesses(1, 10);
+      } else {
+        setPage(newPage || 1);
+        setLimit(newLimit || 10);
+        setProcesses(response.data.items);
+        setGroupedProcesses(response.data.items.length ? groupProcesses(response.data.items) : null);
+        setTotalPages(response.data.totalPages);
+        setTotalItems(response.data.totalItems);
+      }
+    } catch (error) {
+      console.error("Error fetching processes:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    if (authLoading) return;
+    if (!token) {
+      router.push("/login");
+      return;
+    }
+    if (!searchParams.get("repository")) {
+      router.push("/repositories");
+      return;
+    }
+    if (token) {
+      fetchRepository(); 
+      fetchProcesses(1, 10);
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [token, authLoading]);
+
+  const iterate = async (process_id) => {
+    try {
+      setLoading(true);
+    } catch (error) {
+      console.log(`Error iterating process_id ${process_id}`)
+    } finally {
+      setLoading(false);
+    }
+  };
 
   // Accordion toggle handler
   const toggleGroup = (trigger, process_id, performance_type) => {
@@ -97,16 +116,16 @@ export default function ProcessesListPage() {
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
       <Header backgroundColor="bg-orange-500" title="Processes"/>
       <main className="flex-grow">
-        <div className="max-w-7xl mx-auto w-full px-4">
+        <div className="max-w-8xl mx-auto w-full px-4">
           <div className="flex justify-between items-center mt-4">
             <div>
-              <Link
-                href={`/processes/create?repository=${repository.id}`}
+              {role === 'admin' && repository && <Link
+                href={`/processes/create?repository=${repository?._id?.$oid}`}
                 className="bg-orange-500 hover:bg-orange-600  text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2"
               >
                 <FaPlus className="mr-2 inline" />
                 New Process
-              </Link>
+              </Link>}
             </div>
             <div>
               <Link
@@ -119,30 +138,29 @@ export default function ProcessesListPage() {
             </div>            
           </div>
         </div>
-        <div className="max-w-7xl mx-auto w-full px-4 pt-2 pb-4">
+        <div className="max-w-8xl mx-auto w-full px-4 pt-2 pb-4">
           {/* Repository Info */}
-          <div className="mb-8 p-6 bg-white rounded-lg shadow">
-            <h2 className="text-2xl font-bold mb-2"><FaArchive className="w-8 h-8 text-orange-500 inline mr-2" /> {repository.name}</h2>
-            <p className="mb-1">{repository.description}</p>
-            {repository.url && <p className="mb-1">
-              <strong>URL:</strong>{" "}
-              <a href={repository.url} className="no-underline" target="_blank" rel="noopener noreferrer">
-                <FaShareSquare title="Open repository url in another tab" className="w-4 h-4 text-orange-500 inline" />
-              </a>
-            </p>}
+          {!loading && repository && <div className="mb-8 p-6 bg-white rounded-lg shadow">
+            <h2 className="text-2xl font-bold mb-2">
+              <FaArchive className="w-8 h-8 text-orange-500 inline mr-2" /> 
+              <a target="_blank" className="text-orange-500 inline" href={`/repositories/show/${repository?._id?.$oid}`}>&nbsp;{repository.name}</a>
+            </h2>
             <p>
               <strong>Version:</strong> {repository.version}
             </p>
-          </div>
+          </div>}
 
           {/* Processes Table with Accordions */}
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="text-xl font-bold mb-4"><FaProjectDiagram className="w-4 h-4 inline text-orange-500" /> Processes</h3>
-            {mockProcesses.length === 0 && (
+            {processes?.length > 0 && <div className="flex justify-end my-2">
+              <PageSize page={page} value={limit} onChange={fetchProcesses}/>
+            </div>}
+            {processes?.length === 0 && (
               <p className="text-gray-500">No processes found.</p>
             )}
-            {triggers.map(trigger => (
-              <div key={trigger} className={"mb-4 border rounded" + (Object.keys(groupedProcesses[trigger]).length ? "" : " hidden")}>
+            {!loading && processes?.length > 0 && groupedProcesses && (triggers.map(trigger => (
+              <div key={trigger} className={"mb-4 border rounded" + (Object.keys((groupedProcesses)[trigger]).length ? "" : " hidden")}>
                 {/* Trigger Type Accordion */}
                 <button
                   type="button"
@@ -155,11 +173,11 @@ export default function ProcessesListPage() {
                   {trigger} triggered processes
                 </button>
                 <div className={openGroups[`${trigger}`] ? "block" : "hidden"}>
-                  {Object.keys(groupedProcesses[trigger]).length === 0 && (
+                  {Object.keys((groupedProcesses)[trigger]).length === 0 && (
                     <p className="text-gray-500 px-4 py-2">No processes for this trigger.</p>
                   )}
-                  {Object.keys(groupedProcesses[trigger]).map(process_id => (
-                    <div key={process_id} className={"ml-4 mb-2 border-l" + (groupedProcesses[trigger][process_id].optimized.length || groupedProcesses[trigger][process_id].non_optimized.length ? "" : " hidden")}>
+                  {Object.keys((groupedProcesses)[trigger]).map(process_id => (
+                    <div key={process_id} className={"ml-4 mb-2 border-l" + ((groupedProcesses)[trigger][process_id].optimized.length || (groupedProcesses)[trigger][process_id].non_optimized.length ? "" : " hidden")}>
                       <button
                         type="button"
                         className="cursor-pointer w-full text-left px-4 py-2 bg-orange-50 font-semibold flex items-center"
@@ -171,9 +189,9 @@ export default function ProcessesListPage() {
                         <span className="mr-auto" onClick={() => toggleGroup(trigger, process_id)}>
                           Process ID: {process_id}
                         </span>
-                        {trigger === 'USER' && (
+                        {trigger === 'user' && (
                           <span className="flex-end items-center inline">
-                              <FaRedo title="Re-run process" className="text-orange-500"/>
+                              <FaRedo title="Re-run process" className="cursor-pointer text-orange-500" onClick={() => iterate(process_id)}/>
                           </span>
                         )}
                       </button>
@@ -194,65 +212,65 @@ export default function ProcessesListPage() {
                               {groupedProcesses[trigger][process_id][performance_type].length === 0 ? (
                                 <p className="text-gray-500 px-4 py-2">No processes.</p>
                               ) : (
-                                <div className="overflow-x-auto w-full">
-                                <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md mt-2">
-                                  <thead>
-                                    <tr className="bg-orange-500 text-white">
-                                      <th className="px-2 py-2 text-xs min-w-auto">Task Process</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">All process tasks</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Status</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Start Time</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">End Time</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Duration</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Input Size</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Output Size</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Errors</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Validated</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Valid</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Created At</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Updated At</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Iteration</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Repo Version</th>
-                                      <th className="px-2 py-2 text-xs min-w-auto">Actions</th>
-                                    </tr>
-                                  </thead>
-                                  <tbody>
-                                    {groupedProcesses[trigger][process_id][performance_type].map((proc) => (
-                                      <tr key={proc._id} className="hover:bg-gray-100">
-                                        <td className="px-2 py-2 text-xs">{proc.task_process}</td>
-                                        <td className="px-2 py-2 text-xs">
-                                          {proc.actions.map((action) => (
-                                            <div key={`${process_id}-${proc.__id}-${action}`} className="px-2 py-2 text-sm block">{action}</div>
-                                          ))}
-                                        </td>
-                                        <td className="px-2 py-2 text-sm">{proc.status}</td>
-                                        <td className="px-2 py-2 text-sm">{proc.start_time}</td>
-                                        <td className="px-2 py-2 text-sm">{proc.end_time}</td>
-                                        <td className="px-2 py-2 text-sm">{proc.duration}</td>
-                                        <td className="px-2 py-2 text-sm">{proc.input_data_size}</td>
-                                        <td className="px-2 py-2 text-sm">{proc.output_data_size}</td>
-                                        <td className="px-2 py-2 text-sm">
-                                          {proc.errors && <span className="text-green-800"><FaCheckCircle/> Sin errores</span>}
-                                          {!proc.errors && <span className="text-red-800"><FaWindowClose/> Con errores</span>}
-                                        </td>
-                                        <td className="px-2 py-2 text-sm">{proc.validated ? <FaCheckCircle className="text-green-800"/> : <FaWindowClose className="text-red-800"/>}</td>
-                                        <td className="px-2 py-2 text-sm">{proc.valid ? <FaCheckCircle className="text-green-800"/> : <FaWindowClose className="text-red-800"/>}</td>
-                                        <td className="px-2 py-2 text-sm">{proc.created_at}</td>
-                                        <td className="px-2 py-2 text-sm">{proc.updated_at}</td>
-                                        <td className="px-2 py-2 text-sm">{proc.iteration}</td>
-                                        <td className="px-2 py-2 text-sm">{proc.repository_version}</td>
-                                        <td className="px-2 py-2 text-sm space-x-1">
-                                          <Link
-                                            href={`/processes/show/${proc._id}`}
-                                            className="inline-block"
-                                          >
-                                            <FaSearch title="Show Process" className="w-3 h-3 text-stone-700 hover:text-stone-800" />
-                                          </Link>
-                                        </td>
+                                <div className="overflow-x-auto w-full px-2">
+                                  <table className="min-w-full bg-white border border-gray-300 rounded-lg shadow-md mt-2">
+                                    <thead>
+                                      <tr className="bg-orange-500 text-white">
+                                        <th className="px-2 py-2 text-xs min-w-auto">Task Process</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">All process tasks</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Status</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Start Time</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">End Time</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Duration</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Input Size</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Output Size</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Errors</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Validated</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Valid</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Created At</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Updated At</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Iteration</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Repo Version</th>
+                                        <th className="px-2 py-2 text-xs min-w-auto">Actions</th>
                                       </tr>
-                                    ))}
-                                  </tbody>
-                                </table>
+                                    </thead>
+                                    <tbody>
+                                      {groupedProcesses[trigger][process_id][performance_type].map((proc) => (
+                                        <tr key={proc._id.$oid} className="hover:bg-gray-100">
+                                          <td className="px-2 py-2 text-xs">{proc.task_process}</td>
+                                          <td className="px-2 py-2 text-xs">
+                                            {proc.actions.map((action) => (
+                                              <div key={`${process_id}-${proc.__id}-${action}`} className="px-2 py-2 text-sm block">{action}</div>
+                                            ))}
+                                          </td>
+                                          <td className="px-2 py-2 text-sm">{proc.status}</td>
+                                          <td className="px-2 py-2 text-sm">{proc.start_time}</td>
+                                          <td className="px-2 py-2 text-sm">{proc.end_time}</td>
+                                          <td className="px-2 py-2 text-sm">{proc.duration}</td>
+                                          <td className="px-2 py-2 text-sm">{proc.input_data_size}</td>
+                                          <td className="px-2 py-2 text-sm">{proc.output_data_size}</td>
+                                          <td className="px-2 py-2 text-sm">
+                                            {proc.errors && <span className="text-green-800"><FaCheckCircle/> Sin errores</span>}
+                                            {!proc.errors && <span className="text-red-800"><FaWindowClose/> Con errores</span>}
+                                          </td>
+                                          <td className="px-2 py-2 text-sm">{proc.validated ? <FaCheckCircle className="text-green-800"/> : <FaWindowClose className="text-red-800"/>}</td>
+                                          <td className="px-2 py-2 text-sm">{proc.valid ? <FaCheckCircle className="text-green-800"/> : <FaWindowClose className="text-red-800"/>}</td>
+                                          <td className="px-2 py-2 text-sm">{new Date(proc.created_at).toLocaleDateString()}</td>
+                                          <td className="px-2 py-2 text-sm">{new Date(proc.updated_at).toLocaleDateString()}</td>
+                                          <td className="px-2 py-2 text-sm">{proc.iteration}</td>
+                                          <td className="px-2 py-2 text-sm">{proc.repository_version}</td>
+                                          <td className="px-2 py-2 text-sm space-x-1">
+                                            <Link
+                                              href={`/processes/show/${proc._id.$oid}`}
+                                              className="inline-block"
+                                            >
+                                              <FaSearch title="Show Process" className="w-3 h-3 text-stone-700 hover:text-stone-800" />
+                                            </Link>
+                                          </td>
+                                        </tr>
+                                      ))}
+                                    </tbody>
+                                  </table>
                                 </div>
                               )}
                             </div>
@@ -261,9 +279,21 @@ export default function ProcessesListPage() {
                       </div>
                     </div>
                   ))}
+                  {processes?.length > 0 && <div className="flex justify-end my-2">
+                    <Paginator
+                      page={page}
+                      totalPages={totalPages}
+                      onPageChange={fetchProcesses}
+                      module="processes"
+                      showTotals={true}
+                      limit={limit}
+                      totalItems={totalItems}
+                      activeBackgroundColor="bg-orange-500"
+                    />
+                  </div>}
                 </div>
               </div>
-            ))}
+            )))}
           </div>
         </div>
       </main>

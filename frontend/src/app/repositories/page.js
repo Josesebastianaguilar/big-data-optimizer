@@ -24,7 +24,7 @@ export default function RepositoriesPage() {
     try {
       setLoading(true);
       const response = await api.get(`/repositories?page=${newPage}&limit=${newLimit}`);
-      if (page > response.data.totalPages) {
+      if (page > response.data.totalPages && response.data.items.length) {
         fetchRepositories(1, 10);
       }
       else {

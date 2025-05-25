@@ -59,7 +59,7 @@ export default function RecordForm({ repository, record = {}, onSubmit, isEdit =
         {isEdit ? "Update" : "Create"} Record
       </button>
       <div className="flex justify-center text-sm items-center mb-6 mt-6 sm:mt-0">
-        By {!isEdit ? "creating a" : "modifying this"} record, the version of the repository will be updated to&nbsp;<strong>{repository.version + 1}</strong>.
+        By {!isEdit ? "creating a" : "modifying this"} record, therepository will be updated to version {repository.version + 1}.
       </div>
     </form>
   );

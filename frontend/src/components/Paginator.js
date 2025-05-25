@@ -1,6 +1,6 @@
 import React from "react";
 
-export default function Paginator({ page, totalPages, totalItems, onPageChange, limit, module, activeBackgroundColor = 'bg-blue-600' }) {
+export default function Paginator({ page, totalPages, totalItems, onPageChange, limit, module, activeBackgroundColor = 'bg-blue-600', showTotals =  false}) {
   const handleClick = (page_element) => {
     if (page_element !== page && page_element > 0 && page_element <= totalPages) {
       onPageChange(page_element, limit);
@@ -19,7 +19,7 @@ export default function Paginator({ page, totalPages, totalItems, onPageChange, 
 
   return (
     <div>
-      {totalPages > 5 && <div className="flex justify-end my-2">
+      {(totalPages > 5 || showTotals) && <div className="flex justify-end my-2">
         There are and {totalPages} pages of {module} ({totalItems} items).
       </div>}
       <nav className="flex justify-center my-4">

@@ -100,18 +100,18 @@ async def validate_complete_processes(trigger_type: Trigger):
         repository_version = process_group[0]["repository_version"]
         actions = process_group[0]["actions"]
         
-        if ProcessName.FILTER in actions:
-          filter_processes = [p for p in process_group if p["task_process"] == ProcessName.FILTER]
+        if ProcessName.filter in actions:
+          filter_processes = [p for p in process_group if p["task_process"] == ProcessName.filter]
           filter_validation = validate_filter_processes(filter_processes)
-          logging.info(f"Validated filter processes for process_id: {process_id} for task_process: {ProcessName.FILTER}")
-        if ProcessName.GROUP in actions:
-          group_processes = [p for p in process_group if p["task_process"] == ProcessName.GROUP]
+          logging.info(f"Validated filter processes for process_id: {process_id} for task_process: {ProcessName.filter}")
+        if ProcessName.group in actions:
+          group_processes = [p for p in process_group if p["task_process"] == ProcessName.group]
           group_validation = validate_group_processes(group_processes)
-          logging.info(f"Validated group processes for process_id: {process_id} for task_process: {ProcessName.GROUP}")
-        if ProcessName.AGGREGATION in actions:
-          aggregation_processes = [p for p in process_group if p["task_process"] == ProcessName.AGGREGATION]
+          logging.info(f"Validated group processes for process_id: {process_id} for task_process: {ProcessName.group}")
+        if ProcessName.aggregation in actions:
+          aggregation_processes = [p for p in process_group if p["task_process"] == ProcessName.aggregation]
           aggregation_validation = validate_aggregation_processes(aggregation_processes)
-          logging.info(f"Validated aggregation processes for process_id: {process_id} for task_process: {ProcessName.AGGREGATION}")
+          logging.info(f"Validated aggregation processes for process_id: {process_id} for task_process: {ProcessName.aggregation}")
         
         await db["processes"].update_many({"_id": {"$in": filter_validation.valid + group_validation.valid + aggregation_validation.valid}}, {"$set": {"validated": True, "valid": True}})
         await db["processes"].update_many({"_id": {"$in": filter_validation.invalid + group_validation.invalid + aggregation_validation.invalid}}, {"$set": {"validated": True, "valid": False}})

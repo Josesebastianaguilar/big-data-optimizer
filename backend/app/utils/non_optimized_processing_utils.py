@@ -2,7 +2,7 @@ import pandas as pd
 import operator
 from typing import List, Any, Dict, Tuple
 from collections import defaultdict
-from app.utils.general_utils import validate_columns, validate_columns_types, validate_operator, validate_aggregation, OPERATORS, AGGREGATION_FUNCTIONS
+from app.utils.general_utils import OPERATORS, AGGREGATION_FUNCTIONS
 
 def map_groupped_records(groupped_data: dict, map_property: str) -> dict:
     """
@@ -19,7 +19,7 @@ def map_groupped_records(groupped_data: dict, map_property: str) -> dict:
     
     return group_mapping
 
-def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.DataFrame:
+def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]], num_processes = None) -> pd.DataFrame:
     """
     Filter a DataFrame using multiple conditions.
     Parameters:
@@ -44,41 +44,38 @@ def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.DataFrame
 
     return df
 
-def group_data(data: List[dict], group_by_columns: List[str]) -> Dict[Tuple[Any, ...], List[dict]]:
+def group_data(data: List[dict], group_by_parameters: List[str]) -> Dict[Tuple[Any, ...], List[dict]]:
     """
-    Group data by specified columns.
+    Group data by specified parameters.
     Parameters:
     - data: List[dict] - Input data as a list of dictionaries.
-    - group_by_columns: List[str] - Columns to group by.
+    - group_by_parameters: List[str] - Parameters to group by.
     Returns:
     - Dict[Tuple[Any, ...], List[dict]]: A dictionary where keys are tuples of group values and values are lists of rows in that group.
     """
     grouped_data = defaultdict(list)
 
     for row in data:
-        group_key = tuple(row[col] for col in group_by_columns if col in row)
+        group_key = tuple(row[parameter] for parameter in group_by_parameters if parameter in row)
         grouped_data[group_key].append(row)
 
     return grouped_data
 
-def aggregate_data(df: pd.DataFrame, aggregation_columns: List[dict]) -> Dict[str, Any]:
+def aggregate_data(df: pd.DataFrame, aggregation_parameters: List[dict]) -> Dict[str, Any]:
     """
-    Perform aggregation on the DataFrame based on specified columns and functions.
+    Perform aggregation on the DataFrame based on specified parameters and functions.
     Parameters:
     - df: pd.DataFrame - The input data.
-    - aggregation_columns: List[dict] - Columns to aggregate and their respective functions.
+    - aggregation_parameters: List[dict] - Parameters to aggregate and their respective functions.
     Returns:
     - Dict[str, Any]: A dictionary with aggregation results.
     """
     results = []
-    for aggregation_column in aggregation_columns:
-        aggregation_result = {"property": aggregation_column["name"]}
+    for aggregation_parameter in aggregation_parameters:
+        aggregation_result = {"property": aggregation_parameter["name"]}
         
-        for aggregation in aggregation_column["aggregations"]:
-            try:
-                aggregation_result[aggregation] = AGGREGATION_FUNCTIONS[aggregation](df[aggregation_column["name"]])
-            except Exception as e:
-                print(f"Skipping column '{aggregation_column}'.'{aggregation}' due to error: {e}")
-        results.append(aggregation)
+        for aggregation in aggregation_parameter["operations"]:
+            aggregation_result[aggregation] = AGGREGATION_FUNCTIONS[aggregation](df[aggregation_parameter["name"]])
+        results.append(aggregation_result)
 
     return results

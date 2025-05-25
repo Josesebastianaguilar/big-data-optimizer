@@ -30,6 +30,13 @@ export default function Footer({backgroundColor}) {
           <FaEnvelope className="h4 w-4"/>
         </a>
       </div>
+      <div className="mt-4 flex justify-center gap-4">
+        <div
+          className="text-sm"
+        >
+          Developed by {process.env.NEXT_PUBLIC_AUTHOR}
+        </div>
+      </div>
     </footer>
   );
 }
