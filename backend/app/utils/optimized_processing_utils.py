@@ -15,7 +15,7 @@ def map_groupped_records(grouped_data: pd.core.groupby.generic.DataFrameGroupBy,
     """
     group_mapping = {}
 
-    for group_key, group_df in grouped:
+    for group_key, group_df in grouped_data:
         # Extract the values of the property parameter for each group
         group_mapping[group_key] = group_df[map_property].tolist()
 
@@ -58,7 +58,7 @@ async def filter_data(df: pd.DataFrame, filters: List[Any], num_processes=1) -> 
     """
     chunks = [df.iloc[i::num_processes] for i in range(num_processes)]
     
-    await asyncio.gather(*[asyncio.to_thread(filter_chunk, chunk, filters) for chunk in chunks])
+    results = await asyncio.gather(*[asyncio.to_thread(filter_chunk, chunk, filters) for chunk in chunks])
 
     filtered_df = pd.concat(results)
 
@@ -76,19 +76,35 @@ def group_data(df: pd.DataFrame, group_by_parameters: List[str]) -> pd.core.grou
     return df.groupby(group_by_parameters)
 
 def aggregate_data(df: pd.DataFrame, aggregation_parameters: List[dict]) -> List[dict]:
-    """
-    Perform aggregation on the DataFrame based on specified parameters and functions.
-    Parameters:
-    - df: pd.DataFrame - The input data.
-    - aggregation_parameters: List[dict] - Parameters to aggregate and their respective functions.
-    Returns:
-    - List[dict]: A list of dictionaries with aggregation results.
-    """
+    aggregation_ops = {"sum", "min", "max", "mean", "count", "median", "std", "var", "first", "last"}
+    transform_ops = {"unique", "mode", "range"}
+
     result = []
     for parameter in aggregation_parameters:
-        agg_values = df[parameter["name"]].agg(parameter["operations"])
-        result.append({
-            "property": parameter["name"],
-            **{agg_func: agg_values[agg_func] for agg_func in parameter["aggregations"]}
-        })
+        param_name = parameter["name"]
+        ops = parameter["operations"]
+
+        agg_ops = [op for op in ops if op in aggregation_ops]
+        trans_ops = [op for op in ops if op in transform_ops]
+
+        agg_result = {}
+        if agg_ops:
+            agg_values = df[param_name].agg(agg_ops)
+            for agg_func in agg_ops:
+                agg_result[agg_func] = agg_values[agg_func] if agg_func in agg_values else None
+
+        # Apply transforms manually
+        series = df[param_name]
+        for trans_func in trans_ops:
+            if trans_func == "unique":
+                agg_result["unique"] = list(series.unique())
+            elif trans_func == "mode":
+                mode_val = series.mode()
+                agg_result["mode"] = mode_val.iloc[0] if not mode_val.empty else None
+            elif trans_func == "range":
+                agg_result["range"] = series.max() - series.min() if not series.empty else None
+
+        # Combine into result
+        result.append({"property": param_name,**agg_result})
+
     return result

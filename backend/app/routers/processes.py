@@ -10,13 +10,7 @@ from bson import json_util
 from datetime import datetime
 from dotenv import load_dotenv
 import asyncio
-import os
 import logging
-
-load_dotenv()
-logging.basicConfig(filename=os.getenv("ERROR_LOG_PATH", "error.log"), level=logging.ERROR)
-logging.basicConfig(filename=os.getenv("INFO_LOG_PATH", "info.log"), level=logging.INFO)
-logging.basicConfig(filename=os.getenv("WARNING_LOG_PATH", "warning.log"), level=logging.WARNING)
 
 router = APIRouter()
 
@@ -78,7 +72,7 @@ async def process_data(repository_id: str, request: Request, current_user: dict 
         validate_operator(repository_parameter, parameter["operator"], parameter["value"])
     
     for operation in operations:
-        validate_aggregations(operations)
+        validate_aggregations(operation)
     validate_aggregation_parameter_types(repository["parameters"], aggregation_parameter_names, "number")
     processes_optimized = []
     processes_non_optimized = []

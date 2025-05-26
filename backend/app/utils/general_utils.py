@@ -2,15 +2,9 @@ from fastapi import Request, HTTPException
 from typing import List, Any
 from app.models.process import Process, ProcessName
 from bson.objectid import ObjectId
-from dotenv import load_dotenv
 import operator
-import os
 import logging
-
-load_dotenv()
-logging.basicConfig(filename=os.getenv("ERROR_LOG_PATH", "error.log"), level=logging.ERROR)
-logging.basicConfig(filename=os.getenv("INFO_LOG_PATH", "info.log"), level=logging.INFO)
-logging.basicConfig(filename=os.getenv("WARNING_LOG_PATH", "warning.log"), level=logging.WARNING)
+import numpy as np
 
 OPERATORS = {
     "==": {"action": operator.eq, "types": ["int", "float", "string", "number"]},
@@ -143,7 +137,30 @@ def validate_aggregation_parameter_types(collection_parameters: List[dict], proc
     """
     for process_parameter in process_parameters:
         for collection_parameter in collection_parameters:
-            if process_parameter["name"] == collection_parameter["name"] and collection_parameter["type"] != parameter_type:
+            if process_parameter == collection_parameter["name"] and collection_parameter["type"] != parameter_type:
                 logging.error(f"Parameter {collection_parameter['name']} is not of type {parameter_type}. Expected type: {collection_parameter['type']}.")
                 raise HttpException(status_code=400, detail=f"Parameter {collection_parameter['name']} is not of type {parameter_type}. Expected type: {collection_parameter['type']}.")
+
+def tuple_key_to_str(k):
+    if isinstance(k, tuple):
+        return "|".join(str(x) for x in k)
+    return str(k)
+
+def stringify_tuple_keys(d):
+    return {tuple_key_to_str(k): v for k, v in d.items()}
+
+def str_key_to_tuple(s):
+    return tuple(s.split("|"))
+
+def convert_numpy_types(obj):
+    if isinstance(obj, dict):
+        return {k: convert_numpy_types(v) for k, v in obj.items()}
+    elif isinstance(obj, list):
+        return [convert_numpy_types(v) for v in obj]
+    elif isinstance(obj, (np.integer, np.int_, np.intc, np.intp, np.int8, np.int16, np.int32, np.int64)):
+        return int(obj)
+    elif isinstance(obj, (np.floating, np.float16, np.float32, np.float64)):
+        return float(obj)
+    else:
+        return obj
     

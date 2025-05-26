@@ -5,18 +5,17 @@ from app.database import db
 from app.utils.monitor_resources_utils import monitor_resources, get_metrics, dequeue_measurements, get_process_times
 from queue import Queue
 from threading import Lock
-from dotenv import load_dotenv
 from collections import defaultdict
 from datetime import datetime
 from  app.utils import non_optimized_processing_utils as non_opt_utils
 from  app.utils import optimized_processing_utils as opt_utils
+from app.utils.general_utils import str_key_to_tuple
 import pandas as pd
 import multiprocessing as mp
 import time
 import threading
 import asyncio
 import logging
-import os
 
 def validate_filter_processes(processes: List[dict]):
   """
@@ -30,7 +29,7 @@ def validate_filter_processes(processes: List[dict]):
   valid = [process["_id"] for process in processes if str(process["_id"]) not in invalid]
   return {"valid": valid, "invalid": list(invalid)}
 
-def validate_group_processes(processes: List[dict]):
+def validate_group_processes(processes):
   """
   Validate group processes.
   """
@@ -39,7 +38,8 @@ def validate_group_processes(processes: List[dict]):
     return {"valid": [], "invalid": []}
   valid = []
   invalid = []
-  base_results = processes[0]["results"] if len(processes) != 0 else {}
+  base_results = str_key_to_tuple(str(processes[0]["results"])) if len(processes) != 0 else {}
+  logging.info(f"type base_results {type(base_results)}")
   for key in base_results.keys():
     base_values = [str(value) for value in base_results[key] if value is not None]  
     for process in processes:
@@ -83,7 +83,7 @@ def validate_aggregation_processes(processes: List[dict]):
 
 async def validate_complete_processes(trigger_type: Trigger):
   try:
-    processes = await db["processes"].find({"trigger_type": trigger_type, "status": ProcessingStatus.COMPLETED, "validated": False}).to_list(length=None)
+    processes = await db["processes"].find({"trigger_type": trigger_type, "status": "completed", "validated": False}).to_list(length=None)
     if len(processes) == 0:
       logging.info(f"No completed processes non validated found for trigger type: {trigger_type}")
       return
@@ -100,18 +100,18 @@ async def validate_complete_processes(trigger_type: Trigger):
         repository_version = process_group[0]["repository_version"]
         actions = process_group[0]["actions"]
         
-        if ProcessName.filter in actions:
-          filter_processes = [p for p in process_group if p["task_process"] == ProcessName.filter]
+        if "filter" in actions:
+          filter_processes = [p for p in process_group if p["task_process"] == "filter"]
           filter_validation = validate_filter_processes(filter_processes)
-          logging.info(f"Validated filter processes for process_id: {process_id} for task_process: {ProcessName.filter}")
-        if ProcessName.group in actions:
-          group_processes = [p for p in process_group if p["task_process"] == ProcessName.group]
+          logging.info(f"Validated filter processes for process_id: {process_id} for task_process: filter")
+        if "group" in actions:
+          group_processes = [p for p in process_group if p["task_process"] == "group"]
           group_validation = validate_group_processes(group_processes)
-          logging.info(f"Validated group processes for process_id: {process_id} for task_process: {ProcessName.group}")
-        if ProcessName.aggregation in actions:
-          aggregation_processes = [p for p in process_group if p["task_process"] == ProcessName.aggregation]
+          logging.info(f"Validated group processes for process_id: {process_id} for task_process: group")
+        if "aggregation" in actions:
+          aggregation_processes = [p for p in process_group if p["task_process"] == "aggregation"]
           aggregation_validation = validate_aggregation_processes(aggregation_processes)
-          logging.info(f"Validated aggregation processes for process_id: {process_id} for task_process: {ProcessName.aggregation}")
+          logging.info(f"Validated aggregation processes for process_id: {process_id} for task_process: aggregation")
         
         await db["processes"].update_many({"_id": {"$in": filter_validation.valid + group_validation.valid + aggregation_validation.valid}}, {"$set": {"validated": True, "valid": True}})
         await db["processes"].update_many({"_id": {"$in": filter_validation.invalid + group_validation.invalid + aggregation_validation.invalid}}, {"$set": {"validated": True, "valid": False}})
@@ -127,7 +127,9 @@ async def init_validation():
     Process data for a given collection and queries.
     """
     try:
+      logging.info("Starting validation of completed processes for SYSTEM trigger")
       await validate_complete_processes(Trigger.SYSTEM)
+      logging.info("Starting validation of completed processes for USER trigger")
       await validate_complete_processes(Trigger.USER)
     except Exception as e:
       logging.error(f"Error in validation: {e}")

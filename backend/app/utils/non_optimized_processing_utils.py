@@ -73,9 +73,10 @@ def aggregate_data(df: pd.DataFrame, aggregation_parameters: List[dict]) -> Dict
     results = []
     for aggregation_parameter in aggregation_parameters:
         aggregation_result = {"property": aggregation_parameter["name"]}
-        
+        series_as_list = df[aggregation_parameter["name"]].tolist()
+         
         for aggregation in aggregation_parameter["operations"]:
-            aggregation_result[aggregation] = AGGREGATION_FUNCTIONS[aggregation](df[aggregation_parameter["name"]])
+            aggregation_result[aggregation] = AGGREGATION_FUNCTIONS[aggregation](series_as_list)
         results.append(aggregation_result)
 
     return results

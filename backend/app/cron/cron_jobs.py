@@ -1,10 +1,12 @@
-import logging
-import os
 from apscheduler.triggers.cron import CronTrigger
-from apscheduler.schedulers.background import BackgroundScheduler
+#from apscheduler.schedulers.background import BackgroundScheduler
+from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.utils.cron_initiated_processing_utils import prepare_cron_initiated_processes
 from app.utils.validation_utils import init_validation
 from dotenv import load_dotenv
+import logging
+import os
+import asyncio
 
 load_dotenv()
 
@@ -12,7 +14,10 @@ PROCESSING_HOURS = list(map(int, os.getenv("PROCESSING_HOURS", "4,8,16,20").spli
 VALIDATION_HOURS = list(map(int, os.getenv("VALIDATION_HOURS", "8").split(",")))
 
 # Initialize the scheduler
-scheduler = BackgroundScheduler()
+#For asyncio-based applications, use AsyncIOScheduler
+scheduler = AsyncIOScheduler()
+# For non-asyncio applications, use BackgroundScheduler
+#scheduler = BackgroundScheduler()
 
 def start_cron_jobs():
     """
@@ -30,7 +35,7 @@ def start_cron_jobs():
     for hour in VALIDATION_HOURS:
         scheduler.add_job(
             init_validation,
-            CronTrigger(hour=hour, minute=0),  # Run every day at the specified hour
+            CronTrigger(hour=hour, minute=23),  # Run every day at the specified hour
             id=f"init_validation_{hour}",  # Unique ID for the job
             replace_existing=True,
         )

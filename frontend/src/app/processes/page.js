@@ -96,6 +96,8 @@ export default function ProcessesListPage() {
   const iterate = async (process_id) => {
     try {
       setLoading(true);
+      const response = await api.post(`/processes/iterate/${process_id}`);
+      fetchProcesses(page, limit);
     } catch (error) {
       console.log(`Error iterating process_id ${process_id}`)
     } finally {
@@ -111,6 +113,15 @@ export default function ProcessesListPage() {
       [key]: !prev[key],
     }));
   };
+
+  const formatDuration = (seconds) => {
+    const h = Math.floor(seconds / 3600);
+    const m = Math.floor((seconds % 3600) % 60);
+    const s = Math.floor(seconds % 60);
+    const ms = Math.floor((seconds - Math.floor(seconds)) * 1000);
+    return `${h}h ${m}m ${s}s ${ms}ms`;
+  }
+
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
@@ -219,8 +230,6 @@ export default function ProcessesListPage() {
                                         <th className="px-2 py-2 text-xs min-w-auto">Task Process</th>
                                         <th className="px-2 py-2 text-xs min-w-auto">All process tasks</th>
                                         <th className="px-2 py-2 text-xs min-w-auto">Status</th>
-                                        <th className="px-2 py-2 text-xs min-w-auto">Start Time</th>
-                                        <th className="px-2 py-2 text-xs min-w-auto">End Time</th>
                                         <th className="px-2 py-2 text-xs min-w-auto">Duration</th>
                                         <th className="px-2 py-2 text-xs min-w-auto">Input Size</th>
                                         <th className="px-2 py-2 text-xs min-w-auto">Output Size</th>
@@ -237,29 +246,36 @@ export default function ProcessesListPage() {
                                     <tbody>
                                       {groupedProcesses[trigger][process_id][performance_type].map((proc) => (
                                         <tr key={proc._id.$oid} className="hover:bg-gray-100">
-                                          <td className="px-2 py-2 text-xs">{proc.task_process}</td>
-                                          <td className="px-2 py-2 text-xs">
+                                          <td className="text-center px-2 py-2 text-xs">{proc.task_process}</td>
+                                          <td className="text-center px-2 py-2 text-xs">
                                             {proc.actions.map((action) => (
-                                              <div key={`${process_id}-${proc.__id}-${action}`} className="px-2 py-2 text-sm block">{action}</div>
+                                              <div key={`${process_id}-${proc._id.$oid}-${action}`} className="px-2 py-2 text-sm block">{action}</div>
                                             ))}
                                           </td>
-                                          <td className="px-2 py-2 text-sm">{proc.status}</td>
-                                          <td className="px-2 py-2 text-sm">{proc.start_time}</td>
-                                          <td className="px-2 py-2 text-sm">{proc.end_time}</td>
-                                          <td className="px-2 py-2 text-sm">{proc.duration}</td>
-                                          <td className="px-2 py-2 text-sm">{proc.input_data_size}</td>
-                                          <td className="px-2 py-2 text-sm">{proc.output_data_size}</td>
-                                          <td className="px-2 py-2 text-sm">
-                                            {proc.errors && <span className="text-green-800"><FaCheckCircle/> Sin errores</span>}
-                                            {!proc.errors && <span className="text-red-800"><FaWindowClose/> Con errores</span>}
+                                          <td className="text-center px-2 py-2 text-sm">{proc.status}</td>
+                                          <td className="text-center px-2 py-2 text-sm">{formatDuration(proc.duration)}</td>
+                                          <td className="text-center px-2 py-2 text-sm">{proc.input_data_size}</td>
+                                          <td className="text-center px-2 py-2 text-sm">
+                                            {proc.task_process === 'filter' && <span>{proc.output_data_size || '-'}</span>}
+                                            {proc.task_process !== 'filter' && <span>N/A</span>}
                                           </td>
-                                          <td className="px-2 py-2 text-sm">{proc.validated ? <FaCheckCircle className="text-green-800"/> : <FaWindowClose className="text-red-800"/>}</td>
-                                          <td className="px-2 py-2 text-sm">{proc.valid ? <FaCheckCircle className="text-green-800"/> : <FaWindowClose className="text-red-800"/>}</td>
-                                          <td className="px-2 py-2 text-sm">{new Date(proc.created_at).toLocaleDateString()}</td>
-                                          <td className="px-2 py-2 text-sm">{new Date(proc.updated_at).toLocaleDateString()}</td>
-                                          <td className="px-2 py-2 text-sm">{proc.iteration}</td>
-                                          <td className="px-2 py-2 text-sm">{proc.repository_version}</td>
-                                          <td className="px-2 py-2 text-sm space-x-1">
+                                          <td className="text-center px-2 py-2 text-sm">
+                                            {!proc.errors && <div className="text-green-800">
+                                              <FaCheckCircle className="block w-full"/>
+                                              <div className="text-xs w-full">No errors</div>
+                                            </div>}
+                                            {proc.errors && <div className="text-red-800">
+                                              <FaWindowClose className="block"/>
+                                              <div className="text-xs">Has errors</div>
+                                            </div>}
+                                          </td>
+                                          <td className="text-center align-center px-2 py-2 text-sm">{proc.validated ? <FaCheckCircle className="text-center text-green-800"/> : <FaWindowClose className="text-center rounded-full  text-red-600"/>}</td>
+                                          <td className="text-center px-2 py-2 text-sm">{proc.valid ? <FaCheckCircle className="text-center text-green-800"/> : <FaWindowClose className="text-center rounded-full text-red-600"/>}</td>
+                                          <td className="text-center px-2 py-2 text-sm">{new Date(proc.created_at.$date).toLocaleDateString()}</td>
+                                          <td className="text-center px-2 py-2 text-sm">{new Date(proc.updated_at.$date).toLocaleDateString()}</td>
+                                          <td className="text-center px-2 py-2 text-sm">{proc.iteration}</td>
+                                          <td className="text-center px-2 py-2 text-sm">{proc.repository_version}</td>
+                                          <td className="text-center px-2 py-2 text-sm space-x-1">
                                             <Link
                                               href={`/processes/show/${proc._id.$oid}`}
                                               className="inline-block"
@@ -279,21 +295,21 @@ export default function ProcessesListPage() {
                       </div>
                     </div>
                   ))}
-                  {processes?.length > 0 && <div className="flex justify-end my-2">
-                    <Paginator
-                      page={page}
-                      totalPages={totalPages}
-                      onPageChange={fetchProcesses}
-                      module="processes"
-                      showTotals={true}
-                      limit={limit}
-                      totalItems={totalItems}
-                      activeBackgroundColor="bg-orange-500"
-                    />
-                  </div>}
                 </div>
-              </div>
+              </div>              
             )))}
+            {processes?.length > 0 && <div className="flex justify-end my-2">
+              <Paginator
+                page={page}
+                totalPages={totalPages}
+                onPageChange={fetchProcesses}
+                module="processes"
+                showTotals={true}
+                limit={limit}
+                totalItems={totalItems}
+                activeBackgroundColor="bg-orange-500"
+              />
+            </div>}
           </div>
         </div>
       </main>

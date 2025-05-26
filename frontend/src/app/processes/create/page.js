@@ -21,7 +21,7 @@ export default function CreateProcessPage() {
     { key: "<=", label: "Lower or Equal", types: ["number"] },
     { key: "contains", label: "Contains", types: ["string"] },
   ];
-  const AGGREGATION_OPERATIONS = ["sum", "min", "max", "mean", "count", "median", "standard deviation", "variance", "first", "last", "unique", "mode", "range"];
+  const AGGREGATION_OPERATIONS = ["sum", "min", "max", "mean", "count", "median", "std", "var", "first", "last", "unique", "mode", "range"];
   const [loading, setLoading] = useState(false);
   const [repository, setRepository] = useState(null);
   const [isFormValid, setIsFormValid] = useState(false);
@@ -159,7 +159,7 @@ export default function CreateProcessPage() {
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
       <Header backgroundColor="bg-orange-500" title="Create Process" />
-      <main className="flex-grow max-w-3xl mx-auto w-full px-4 py-8">
+      <main className="flex-grow max-w-6xl mx-auto w-full px-4 py-8">
         <div className="flex justify-end items-center mb-2">    
           {!loading && repository?._id && <Link
             title="Go Back"
@@ -220,7 +220,7 @@ export default function CreateProcessPage() {
                           <tr key={`filterParameterIndex${filterParameterIndex}`} className="">                      
                             <td className="text-center py-1 px-1">
                               <select
-                                className="cursor-pointer border rounded px-2 py-1"
+                                className="cursor-pointer border rounded px-2  py-1 min-w-full"
                                 value={parameter.name}
                                 onChange={(e) => {
                                     const selectedParameter = repository.parameters.find((p) => p.name === e.target.value);
@@ -240,7 +240,7 @@ export default function CreateProcessPage() {
                             </td>
                             <td className="text-center py-1 px-1">
                               <select
-                                className="cursor-pointer border rounded px-2 py-1"
+                                className="cursor-pointer border rounded px-2 py-1 min-w-full"
                                 value={parameter.operator}
                                 onChange={(e) =>
                                   changeParameterProperties("filter", filterParameterIndex, {name: parameter.name, type: parameter.type, operator: e.target.value})
@@ -261,7 +261,7 @@ export default function CreateProcessPage() {
                             </td>
                             <td className="text-center py-1 px-1">
                               <input
-                                className="border rounded px-2 py-1"
+                                className="border rounded px-2 py-1 min-w-full"
                                 type={parameter.type === "number" ? "number" : "text"}
                                 value={parameter.value}
                                 onChange={(e) =>
@@ -276,7 +276,7 @@ export default function CreateProcessPage() {
                               <button
                                 type="button"
                                 title="Remove filter condition"
-                                className="cursor-pointer bg-red-500 hover:bg-red-600 font-bold px-2 text-white rounded text-sm"
+                                className="cursor-pointer bg-red-500 hover:bg-red-600 font-bold px-2 text-white rounded text-sm focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
                                 onClick={() => removeParameter("filter", null, filterParameterIndex)}
                               >
                                 ×
@@ -290,7 +290,7 @@ export default function CreateProcessPage() {
                 </div>}
                 <button
                   type="button"
-                  className="cursor-pointer bg-orange-500 text-white px-3 py-1 rounded mt-2"
+                  className="cursor-pointer bg-orange-500 text-white px-3 py-1 rounded mt-2 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2"
                   onClick={() => addParameter("filter")}
                 >
                   Add Filter Condition
@@ -328,8 +328,8 @@ export default function CreateProcessPage() {
                 {processConfig.aggregation.parameters.map((aggregation, aggregationIndex) => (
                   <div key={`aggregation${aggregationIndex}`} className="overflow-x-auto">
                     <div  className="flex gap-2 items-center mb-2">
-                      <label className="font-semibold">Parameter</label>
-                      <label className="font-semibold">Operations</label>
+                      <label className="font-semibold min-w-1/3 ">Parameter</label>
+                      <label className="font-semibold min-w-3/5 text-center">Operations</label>
                     </div>
                     <div  className="flex gap-2 items-center mb-2">
                       <select
@@ -375,12 +375,16 @@ export default function CreateProcessPage() {
                             <button
                               type="button"
                               title="Remove operation"
-                              className="cursor-pointer font-bold text-sm bg-red-500 hover:bg-red-600 w-6 h-6 mt-1 rounded-full text-white ml-1"
-                              onClick={() => changeParameterProperties(
-                                "aggregation",
-                                aggregationIndex,
-                                {name: aggregation.name, operations: processConfig.aggregation.parameters[aggregationIndex].operations.filter((operationValue) => operationValue !== operation)})}
-                            >
+                              className="cursor-pointer font-bold text-sm bg-red-500 hover:bg-red-600 w-6 h-6 mt-1 rounded-full text-white ml-1 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+                              onClick={() => {
+                                const operationToRemove = processConfig.aggregation.parameters[aggregationIndex].operations[operationIndex];
+                                const updatedOperations = processConfig.aggregation.parameters[aggregationIndex].operations.filter(opItem => opItem !== operationToRemove);
+                                return changeParameterProperties(
+                                  "aggregation",
+                                  aggregationIndex,
+                                  {name: aggregation.name, operations: updatedOperations}
+                                )
+                              }}>
                               ×
                             </button>
                           </div>
@@ -388,7 +392,7 @@ export default function CreateProcessPage() {
                         {aggregation.operations.length < AGGREGATION_OPERATIONS.length && <button
                           type="button"
                           title="Add operation"
-                          className="cursor-pointer font-bold px-2 text-sm bg-orange-500 hover:bg-orange-600 rounded text-white py-1 px-1"
+                          className="cursor-pointer font-bold px-2 text-sm bg-orange-500 hover:bg-orange-600 rounded text-white py-1 px-1 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2"
                           onClick={() => changeParameterProperties(
                             "aggregation",
                             aggregationIndex,
@@ -402,7 +406,7 @@ export default function CreateProcessPage() {
                       <button
                         type="button"
                         title="Remove aggregation"
-                        className="cursor-pointer font-bold px-2  text-lg bg-red-500 hover:bg-red-600 rounded text-white"
+                        className="cursor-pointer font-bold px-2  text-lg bg-red-500 hover:bg-red-600 rounded text-white focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
                         onClick={() => removeParameter("aggregation", null, aggregationIndex)}
                       >
                         ×
@@ -413,7 +417,7 @@ export default function CreateProcessPage() {
                 {processConfig.aggregation.parameters.length < numberParams.length && (
                   <button
                     type="button"
-                    className="cursor-pointer bg-orange-500 text-white px-3 py-1 rounded mt-2"
+                    className="cursor-pointer bg-orange-500 text-white px-3 py-1 rounded mt-2 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2"
                     onClick={() => addParameter("aggregation")}
                   >
                     Add Aggregation
@@ -427,7 +431,7 @@ export default function CreateProcessPage() {
 
             <button
               type="submit"
-              className={` bg-orange-500 text-white py-2 px-4 rounded ${isFormValid ? "cursor-pointer hover:bg-orange-600" : "opacity-50 cursor-not-allowed"}`}
+              className={` bg-orange-500 text-white py-2 px-4 rounded ${isFormValid ? "cursor-pointer hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2" : "opacity-50 cursor-not-allowed"}`}
               disabled={!isFormValid || loading}
             >
               {!loading && <FaPlus className="inline mr-2" />}
