@@ -297,13 +297,13 @@ export default function ProcessesListPage() {
                                           </td>
                                           <td className="text-center align-center px-2 py-2 text-sm">{proc.validated ? <FaCheckCircle className="text-center text-green-800"/> : <FaWindowClose className="text-center rounded-full  text-red-600"/>}</td>
                                           <td className="text-center px-2 py-2 text-sm">{proc.valid ? <FaCheckCircle className="text-center text-green-800"/> : <FaWindowClose className="text-center rounded-full text-red-600"/>}</td>
-                                          <td className="text-center px-2 py-2 text-sm">{new Date(proc.created_at.$date).toLocaleDateString()}</td>
-                                          <td className="text-center px-2 py-2 text-sm">{new Date(proc.updated_at.$date).toLocaleDateString()}</td>
+                                          <td className="text-center px-2 py-2 text-sm">{new Date(proc.created_at.$date).toString()}</td>
+                                          <td className="text-center px-2 py-2 text-sm">{new Date(proc.updated_at.$date).toString()}</td>
                                           <td className="text-center px-2 py-2 text-sm">{proc.iteration}</td>
                                           <td className="text-center px-2 py-2 text-sm">{proc.repository_version}</td>
                                           <td className="text-center px-2 py-2 text-sm space-x-1">
                                             <Link
-                                              href={`/processes/show/${proc._id.$oid}`}
+                                              href={`/processes/show/${proc._id.$oid}?repository=${repository?._id?.$oid}`}
                                               className="inline-block"
                                             >
                                               <FaSearch title="Show Process" className="w-3 h-3 text-stone-700 hover:text-stone-800" />

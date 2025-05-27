@@ -90,10 +90,10 @@ export default function ShowRecordPage() {
               </li>
             ))}
               <li key="record_created_at" className="mb-2">
-                <strong>Created at:</strong> {new Date(record.created_at).toLocaleDateString()}
+                <strong>Created at:</strong> {new Date(record.created_at).toString()}
               </li>
               <li key="record_updated_at" className="mb-2">
-                <strong>Updated at:</strong> {new Date(record.updated_at).toLocaleDateString()}
+                <strong>Updated at:</strong> {new Date(record.updated_at).toString()}
               </li>
               <li key="record_version" className="mb-2">
                 <strong>Version:</strong> {record.version}

@@ -33,7 +33,7 @@ def dequeue_measurements(queue, lock):
 
 def get_metrics(process):
   try:
-    cpu_usage = process.cpu_percent(interval=None)
+    cpu_usage = min(process.cpu_percent(interval=None), 100)
     memory_usage = process.memory_info().rss / (1024 * 1024)# Convert to MB
     timestamp = time.perf_counter()
 

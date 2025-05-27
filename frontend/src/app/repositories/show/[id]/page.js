@@ -107,10 +107,10 @@ export default function ViewRepositoryPage() {
               <strong>Current # of items:</strong> {repository.current_data_size}
             </p>
             <p className="text-lg">
-              <strong>Data Created At:</strong> {new Date(repository.data_created_at).toLocaleDateString()}
+              <strong>Data Created At:</strong> {new Date(repository.data_created_at).toString()}
             </p>
             <p className="text-lg">
-              <strong>Data Updated At:</strong> {new Date(repository.data_updated_at).toLocaleDateString()}
+              <strong>Data Updated At:</strong> {new Date(repository.data_updated_at).toString()}
             </p>
             <p className="text-lg">
               <strong>Version:</strong> {repository.version}
