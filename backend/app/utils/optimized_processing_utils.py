@@ -4,24 +4,6 @@ import multiprocessing as mp
 import asyncio
 from typing import List, Any, Dict
 
-def map_groupped_records(grouped_data: pd.core.groupby.generic.DataFrameGroupBy, map_property):
-    """
-    Map grouped records to a dictionary with group keys and their corresponding values.
-    Parameters:
-    - grouped_data: pd.core.groupby.generic.DataFrameGroupBy - The grouped DataFrame.
-    - map_property: str - The property to map.
-    Returns:
-    - dict: A dictionary where keys are group keys and values are lists of mapped property values.
-    """
-    group_mapping = {}
-
-    for group_key, group_df in grouped_data:
-        # Extract the values of the property parameter for each group
-        group_mapping[group_key] = group_df[map_property].tolist()
-
-    return group_mapping
-
-
 def filter_chunk(chunk: pd.DataFrame, filters: List[Any]) -> pd.DataFrame:
     """
     Filter a chunk of DataFrame based on multiple conditions.
@@ -63,6 +45,24 @@ async def filter_data(df: pd.DataFrame, filters: List[Any], num_processes=1) -> 
     filtered_df = pd.concat(results)
 
     return filtered_df.reset_index(drop=True)
+
+def map_groupped_records(grouped_data: pd.core.groupby.generic.DataFrameGroupBy, map_property):
+    """
+    Map grouped records to a dictionary with group keys and their corresponding values.
+    Parameters:
+    - grouped_data: pd.core.groupby.generic.DataFrameGroupBy - The grouped DataFrame.
+    - map_property: str - The property to map.
+    Returns:
+    - dict: A dictionary where keys are group keys and values are lists of mapped property values.
+    """
+    group_mapping = {}
+
+    for group_key, group_df in grouped_data:
+        # Extract the values of the property parameter for each group
+        group_mapping[group_key] = group_df[map_property].tolist()
+
+    return group_mapping
+
 
 def group_data(df: pd.DataFrame, group_by_parameters: List[str]) -> pd.core.groupby.generic.DataFrameGroupBy:
     """

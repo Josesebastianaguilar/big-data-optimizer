@@ -35,7 +35,7 @@ def start_cron_jobs():
     for hour in VALIDATION_HOURS:
         scheduler.add_job(
             init_validation,
-            CronTrigger(hour=hour, minute=23),  # Run every day at the specified hour
+            CronTrigger(hour=hour, minute=32),  # Run every day at the specified hour
             id=f"init_validation_{hour}",  # Unique ID for the job
             replace_existing=True,
         )

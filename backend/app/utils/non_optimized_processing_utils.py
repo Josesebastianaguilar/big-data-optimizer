@@ -4,21 +4,6 @@ from typing import List, Any, Dict, Tuple
 from collections import defaultdict
 from app.utils.general_utils import OPERATORS, AGGREGATION_FUNCTIONS
 
-def map_groupped_records(groupped_data: dict, map_property: str) -> dict:
-    """
-    Map grouped records to a dictionary with group keys and their corresponding values.
-    Parameters:
-    - groupped_data: dict - The grouped data.
-    - map_property: str - The property to map.
-    Returns:
-    - dict: A dictionary where keys are group keys and values are lists of mapped property values.
-    """
-    group_mapping = {}
-    for group_key in groupped_data.keys():
-        group_mapping[group_key] = [record[map_property] for record in groupped_data[group_key]]
-    
-    return group_mapping
-
 def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]], num_processes = None) -> pd.DataFrame:
     """
     Filter a DataFrame using multiple conditions.
@@ -44,6 +29,21 @@ def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]], num_processes =
 
     return df
 
+def map_groupped_records(groupped_data: dict, map_property: str) -> dict:
+    """
+    Map grouped records to a dictionary with group keys and their corresponding values.
+    Parameters:
+    - groupped_data: dict - The grouped data.
+    - map_property: str - The property to map.
+    Returns:
+    - dict: A dictionary where keys are group keys and values are lists of mapped property values.
+    """
+    group_mapping = {}
+    for group_key in groupped_data.keys():
+        group_mapping[group_key] = [record[map_property] for record in groupped_data[group_key]]
+    
+    return group_mapping
+
 def group_data(data: List[dict], group_by_parameters: List[str]) -> Dict[Tuple[Any, ...], List[dict]]:
     """
     Group data by specified parameters.
@@ -54,11 +54,14 @@ def group_data(data: List[dict], group_by_parameters: List[str]) -> Dict[Tuple[A
     - Dict[Tuple[Any, ...], List[dict]]: A dictionary where keys are tuples of group values and values are lists of rows in that group.
     """
     grouped_data = defaultdict(list)
-
+    
     for row in data:
-        group_key = tuple(row[parameter] for parameter in group_by_parameters if parameter in row)
+        group_key = tuple(row.get(parameter, None) for parameter in group_by_parameters)
+        
+        if any(v is None for v in group_key):
+            continue
         grouped_data[group_key].append(row)
-
+    
     return grouped_data
 
 def aggregate_data(df: pd.DataFrame, aggregation_parameters: List[dict]) -> Dict[str, Any]:

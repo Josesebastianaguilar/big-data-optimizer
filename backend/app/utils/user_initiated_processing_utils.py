@@ -8,7 +8,7 @@ from queue import Queue
 from threading import Lock
 from app.utils import non_optimized_processing_utils as non_opt_utils
 from  app.utils import optimized_processing_utils as opt_utils
-from app.utils.general_utils import stringify_tuple_keys, convert_numpy_types
+from app.utils.general_utils import group_results_to_objects, convert_numpy_types
 from bson import json_util
 from datetime import datetime
 import multiprocessing as mp
@@ -108,8 +108,12 @@ async def apply_groupping(df: pd.DataFrame, processes, utils, optimized):
     group_metrics_list = dequeue_measurements(group_metrics, group_lock)
     group_time_metrics = get_process_times(group_metrics_list)
     normalized_group_results = utils.map_groupped_records(group_results, "_id")
+    grouped_objects = group_results_to_objects(normalized_group_results)
+    if group_process_item["optimized"] is True:
+      grouped_objects = convert_numpy_types(grouped_objects)
+    output_group_data_size = len(grouped_objects) + sum(len(obj["values"]) for obj in grouped_objects)
     
-    await store_success(group_process_item["_id"], input_group_data_size, None, group_metrics_list, group_time_metrics, stringify_tuple_keys(normalized_group_results))
+    await store_success(group_process_item["_id"], input_group_data_size, output_group_data_size, group_metrics_list, group_time_metrics, grouped_objects)
     
     logging.info(f"Group process {str(group_process_item['_id'])} completed successfully")
   except Exception as e:

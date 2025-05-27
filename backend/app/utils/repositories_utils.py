@@ -1,6 +1,6 @@
 from fastapi import Request, Response, HTTPException
 from typing import List, Any
-from app.database import db
+from app.database import db, recreate_records_indexes_from_repositories
 from app.models.repository import Repository
 from pathlib import Path
 from bson.objectid import ObjectId
@@ -24,9 +24,11 @@ async def store_repository_records(repository: Repository, parameters: List[dict
     if delete_existing_records:
         try:
             await db["records"].delete_many({"repository": ObjectId(repository['_id'])})
+            await db["processes"].delete_many({"repository": ObjectId(repository['_id'])})
+            logging.info(f"Deleted existing records and processes for repository {repository['_id']}")
         except Exception as e:
-            logging.error(f"Error deleting existing records for repository {repository['_id']}: {e}")
-            raise ValueError(f"Error deleting existing records for repository {repository['_id']}: {e}")
+            logging.error(f"Error deleting existing records and processes for repository {repository['_id']}: {e}")
+            raise ValueError(f"Error deleting existing records and processes for repository {repository['_id']}: {e}")
     try:
         now = datetime.now()
         csv_data = csv_data.where(pd.notnull(csv_data), None)
@@ -54,6 +56,7 @@ async def store_repository_records(repository: Repository, parameters: List[dict
             "parameters": parameters,
         }
         await db["repositories"].update_one({"_id": ObjectId(repository['_id'])}, {"$set": repository_data})
+        await recreate_records_indexes_from_repositories()
         logging.info(f"Updated repository {repository['_id']} with {num_records} records")
         if repository["large_file"] and repository["file_path"]:
             path = Path(repository["file_path"])
@@ -189,6 +192,8 @@ async def upsert_repository(repository_id, name, description, url, large_file, f
 
         try:
             result = await db["repositories"].update_one({"_id": ObjectId(repository_id)}, {"$set": repository_data})
+            if "file" not in repository or repository["file"] is None:
+                asyncio.create_task(recreate_records_indexes_from_repositories())
             
             if "file" in repository and repository["file"] is not None:
                 file_content = await repository["file"].read()

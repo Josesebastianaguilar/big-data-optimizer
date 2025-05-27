@@ -9,6 +9,7 @@ from bson.objectid import ObjectId
 from bson import json_util
 from datetime import datetime
 from dotenv import load_dotenv
+from app.utils.validation_utils import init_validation
 import asyncio
 import logging
 
@@ -122,6 +123,9 @@ async def iterate_process(process_id: str, current_user: dict = Depends(get_curr
             raise HTTPException(status_code=400, detail="Processes not found for the given process_id. Not possible to iterate.")
         
         repository = await get_repository(str(existing_processes[0]["repository"]))
+        if repository["version"] != existing_processes[0]["repository_version"]:
+            logging.error(f"Repository version mismatch for repository {repository['_id']}. Current version: {repository['version']}, Process version: {existing_processes[0]['repository_version']}")
+            raise HTTPException(status_code=400, detail="Repository version mismatch. Not possible to iterate.")
         iterations = [process["iteration"] for process in existing_processes]
         current_iteration = max(iterations) if len(iterations) > 0 else None
         if current_iteration is None:
@@ -129,7 +133,7 @@ async def iterate_process(process_id: str, current_user: dict = Depends(get_curr
         
         new_iteration_processes = []
         actions = []
-        for process in processes:
+        for process in existing_processes:
             if actions == []:
                 actions = process["actions"]
                 
@@ -140,12 +144,12 @@ async def iterate_process(process_id: str, current_user: dict = Depends(get_curr
                 "status": "in_progress",
                 "repository": ObjectId(repository["_id"]),
                 "repository_version": repository["version"],
-                "process_id": process_id,
+                "process_id": ObjectId(process_id),
                 "trigger_type": "user",
                 "created_at": datetime.now(),
                 "updated_at": datetime.now(),
                 "optimized": process["optimized"],
-                "iteration": process["iteration"] + 1,
+                "iteration": current_iteration + 1,
                 "validated": False
             })
         
@@ -157,3 +161,15 @@ async def iterate_process(process_id: str, current_user: dict = Depends(get_curr
     except Exception as e:
         logging.error(f"Error iterating process {process_id}: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error iterating process: {e}")
+
+@router.put("/validate")
+async def validate_processes_endpoint(request: Request, current_user: dict = Depends(get_current_user)) -> dict:
+    """
+    Validate processes.
+    """
+    try:
+        asyncio.create_task(init_validation())
+        return Response(status_code=201, content=json_util.dumps({"message": "validation_started"}), media_type="application/json")
+    except Exception as e:
+        logging.error(f"Error validating processes: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error validating processes: {e}")

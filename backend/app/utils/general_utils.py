@@ -141,17 +141,6 @@ def validate_aggregation_parameter_types(collection_parameters: List[dict], proc
                 logging.error(f"Parameter {collection_parameter['name']} is not of type {parameter_type}. Expected type: {collection_parameter['type']}.")
                 raise HttpException(status_code=400, detail=f"Parameter {collection_parameter['name']} is not of type {parameter_type}. Expected type: {collection_parameter['type']}.")
 
-def tuple_key_to_str(k):
-    if isinstance(k, tuple):
-        return "|".join(str(x) for x in k)
-    return str(k)
-
-def stringify_tuple_keys(d):
-    return {tuple_key_to_str(k): v for k, v in d.items()}
-
-def str_key_to_tuple(s):
-    return tuple(s.split("|"))
-
 def convert_numpy_types(obj):
     if isinstance(obj, dict):
         return {k: convert_numpy_types(v) for k, v in obj.items()}
@@ -163,4 +152,25 @@ def convert_numpy_types(obj):
         return float(obj)
     else:
         return obj
+
+def group_results_to_objects(grouped_results, group_field="group", values_field="values"):
+    """
+    Converts grouped results with tuple or single-value keys into a list of objects.
+    Each object has a 'group' field (list or single value) and a 'values' field.
+    """
+    result = []
+    for key, values in grouped_results.items():
+        # If the key is a tuple with one element, store as single value; else as list
+        if isinstance(key, tuple):
+            group = key[0] if len(key) == 1 else list(key)
+        else:
+            group = key
+        result.append({group_field: group, values_field: values})
+    def safe_sort_key(x):
+        g = x[group_field]
+        if isinstance(g, list):
+            return tuple("" if v is None else str(v) for v in g)
+        return ("" if g is None else str(g),)
+    result.sort(key=safe_sort_key)
     
+    return result

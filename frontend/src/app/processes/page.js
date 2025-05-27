@@ -6,7 +6,7 @@ import Footer from "@/components/Footer";
 import Paginator from "@/components/Paginator";
 import PageSize from "@/components/PageSize";
 import { useSearchParams, useRouter } from "next/navigation";
-import { FaChevronDown, FaChevronRight, FaSearch, FaCheckCircle, FaWindowClose, FaRedo, FaArrowLeft, FaPlus, FaProjectDiagram, FaArchive, FaShareSquare } from "react-icons/fa"; 
+import { FaChevronDown, FaChevronRight, FaSearch, FaCheckCircle, FaWindowClose, FaRedo, FaArrowLeft, FaPlus, FaProjectDiagram, FaArchive } from "react-icons/fa"; 
 import { useAuth } from "@/context/AuthContext";
 import api from "@/app/api";
 import Link from "next/link";
@@ -26,6 +26,7 @@ export default function ProcessesListPage() {
   const [repository, setRepository] = useState({});
   const searchParams = useSearchParams();
   const router = useRouter();
+  const [validated, setValidated] = useState(false);
 
   const groupProcesses = (processes) => {
     const grouped = { user: {}, system: {} };
@@ -58,19 +59,32 @@ export default function ProcessesListPage() {
   const fetchProcesses = async (newPage = 1, newLimit = 1) => {
     try {
       setLoading(true);
-      const response = await api.get(`/processes/${searchParams.get("repository")}?page=${newPage}&limit=${newLimit}`);
+      const response = await api.get(`/processes/${searchParams.get("repository")}?page=${newPage}&limit=${newLimit}&select=process_id+trigger_type+task_process+actions+status+duration+input_data_size+output_data_size+errors+validated+valid+created_at+updated_at+iteration+repository_version+optimized`);
       if (page > response.data.totalPages && response.data.items.length) {
         fetchProcesses(1, 10);
       } else {
         setPage(newPage || 1);
         setLimit(newLimit || 10);
         setProcesses(response.data.items);
+        setValidated(!response.data.items.some(proc => proc.validated === false));
         setGroupedProcesses(response.data.items.length ? groupProcesses(response.data.items) : null);
         setTotalPages(response.data.totalPages);
         setTotalItems(response.data.totalItems);
       }
     } catch (error) {
       console.error("Error fetching processes:", error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const validate = async () => {
+    try {
+      setLoading(true);
+      const response = await api.put("/processes/validate/");
+      fetchProcesses(page, limit);
+    } catch (error) {
+      console.error("Error validating process:", error);
     } finally {
       setLoading(false);
     }
@@ -120,7 +134,13 @@ export default function ProcessesListPage() {
     const s = Math.floor(seconds % 60);
     const ms = Math.floor((seconds - Math.floor(seconds)) * 1000);
     return `${h}h ${m}m ${s}s ${ms}ms`;
-  }
+  };
+
+  const matchVersions = (process_id) => {
+    const processes_id = processes.filter(proc => proc.process_id.$oid === process_id);
+    
+    return processes_id.every(proc => proc.repository_version === repository.version);
+  };
 
 
   return (
@@ -165,6 +185,12 @@ export default function ProcessesListPage() {
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="text-xl font-bold mb-4"><FaProjectDiagram className="w-4 h-4 inline text-orange-500" /> Processes</h3>
             {processes?.length > 0 && <div className="flex justify-end my-2">
+              <button className={`text-white fonrt-bold py-2 px-4 rounded-md mb-2 ${validated ? 'bg-orange-300 ' : 'cursor-pointer bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2'}`} disabled={validated} onClick={() => validate()}>
+                <FaCheckCircle className="inline mr-2 white text-white-500 mr-2" />
+                Validate Processes
+              </button>
+            </div>}
+            {processes?.length > 0 && <div className="flex justify-end my-2">
               <PageSize page={page} value={limit} onChange={fetchProcesses}/>
             </div>}
             {processes?.length === 0 && (
@@ -200,7 +226,7 @@ export default function ProcessesListPage() {
                         <span className="mr-auto" onClick={() => toggleGroup(trigger, process_id)}>
                           Process ID: {process_id}
                         </span>
-                        {trigger === 'user' && (
+                        {trigger === 'user' && matchVersions(process_id) && (
                           <span className="flex-end items-center inline">
                               <FaRedo title="Re-run process" className="cursor-pointer text-orange-500" onClick={() => iterate(process_id)}/>
                           </span>
