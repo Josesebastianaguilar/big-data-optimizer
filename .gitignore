@@ -11,3 +11,4 @@ node_modules/
 # Error files
 *.log
 data/
+docker-compose.yml

@@ -5,7 +5,7 @@ from app.routers import auth, repositories, records, processes
 from app.cron.cron_jobs import start_cron_jobs, stop_cron_jobs
 from app.database import create_indexes
 
-app = FastAPI()
+app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
 # CORS configuration
 app.add_middleware(
