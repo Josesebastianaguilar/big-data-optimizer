@@ -24,7 +24,7 @@ export default function Footer({backgroundColor}) {
           <FaLinkedin className="h4 w-4"/>
         </a>
         <a
-          href={process.env.NEXT_PUBLIC_EMAIL}
+          href={`mailto:${process.env.NEXT_PUBLIC_EMAIL}`}
           className="hover:underline"
         >
           <FaEnvelope className="h4 w-4"/>
