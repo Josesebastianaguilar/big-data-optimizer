@@ -37,7 +37,7 @@ export default function ProcessShowView() {
     const m = Math.floor((seconds % 3600) % 60);
     const s = Math.floor(seconds % 60);
     const ms = Math.floor((seconds - Math.floor(seconds)) * 1000);
-    return `${h}h ${m}m ${s}s ${ms}ms`;
+    return `${h && h > 24 ? h - 24 : h}h ${m}m ${s}s ${ms}ms`;
   };
 
   const fetchRepository = async () => {
