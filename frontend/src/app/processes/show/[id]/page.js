@@ -22,50 +22,6 @@ import {
 
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, ArcElement, Tooltip, Legend);
 
-// Mock process data (replace with real fetch or prop)
-const process = {
-  _id: 1,
-  task_process: "Import Data",
-  actions: ["FILTER", "GROUP"],
-  status: "Completed",
-  process_id: "P-001",
-  optimized: true,
-  repository: 1,
-  trigger_type: "USER",
-  start_time: "2024-05-01 10:00",
-  end_time: "2024-05-01 10:30",
-  duration: "30m",
-  input_data_size: "500 MB",
-  output_data_size: "300 MB",
-  errors: "",
-  validated: true,
-  valid: true,
-  created_at: "2024-05-01 09:55",
-  updated_at: "2024-05-01 10:31",
-  iteration: 1,
-  repository_version: "1.0.0",
-  results: [
-    { timestamp: "2024-05-01 10:05", cpu: 30, memory: 200 },
-    { timestamp: "2024-05-01 10:10", cpu: 40, memory: 220 },
-    { timestamp: "2024-05-01 10:15", cpu: 35, memory: 210 },
-    { timestamp: "2024-05-01 10:20", cpu: 50, memory: 250 },
-    { timestamp: "2024-05-01 10:25", cpu: 45, memory: 230 },
-    { timestamp: "2024-05-01 10:30", cpu: 38, memory: 215 },
-  ],
-  metrics: {
-    cpu: [30, 40, 35, 50, 45, 38],
-    memory: [200, 220, 210, 250, 230, 215],
-    timestamps: [
-      "2024-05-01 10:05",
-      "2024-05-01 10:10",
-      "2024-05-01 10:15",
-      "2024-05-01 10:20",
-      "2024-05-01 10:25",
-      "2024-05-01 10:30",
-    ],
-  },
-};
-
 export default function ProcessShowView() {
   const router = useRouter();
   const searchParams = useSearchParams();
@@ -87,7 +43,7 @@ export default function ProcessShowView() {
   const fetchRepository = async () => {
       try {
         setLoading(true);
-        const response = await api.get(`/repositories?_id=${searchParams.get("repository")}`);
+        const response = await api.get(`/repositories/?_id=${searchParams.get("repository")}`);
         setRepository(response.data.items[0]);
       } catch (error) {
         console.error("Error fetching repositories:", error);

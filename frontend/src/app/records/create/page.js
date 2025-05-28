@@ -21,7 +21,7 @@ export default function CreateRecordPage() {
   const fetchRepository = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/repositories?_id=${searchParams.get("repository")}&select=name+version+data_ready+current_data_size+parameters`);
+      const response = await api.get(`/repositories/?_id=${searchParams.get("repository")}&select=name+version+data_ready+current_data_size+parameters`);
       setRepository(response.data.items[0] || {});
     } catch (error) {
       console.error("Error fetching repositories:", error);

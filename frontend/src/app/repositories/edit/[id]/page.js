@@ -20,7 +20,7 @@ export default function EditRepositoryPage() {
   const fetchRepository = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/repositories?_id=${id}`);
+      const response = await api.get(`/repositories/?_id=${id}`);
       setRepository(response.data.items[0] || {});
     } catch (error) {
       console.error("Error fetching repositories:", error);

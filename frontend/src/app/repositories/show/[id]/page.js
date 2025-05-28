@@ -18,7 +18,7 @@ export default function ViewRepositoryPage() {
   const fetchRepository = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/repositories?_id=${id}`);
+      const response = await api.get(`/repositories/?_id=${id}`);
       console.log('response', response);
       setRepository(response.data.items[0] || {});
     } catch (error) {

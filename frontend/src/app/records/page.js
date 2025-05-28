@@ -28,7 +28,7 @@ export default function RecordsListPage() {
   const fetchRepository = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/repositories?_id=${searchParams.get("repository")}`);
+      const response = await api.get(`/repositories/?_id=${searchParams.get("repository")}`);
       setRepository(response.data.items[0] || {});
     } catch (error) {
       console.error("Error fetching repositories:", error);

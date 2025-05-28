@@ -22,7 +22,7 @@ export default function CreateRepositoryPage() {
   , [role]);
 
   const handleCreate = (data) => {
-    return api.post("/repositories", data)
+    return api.post("/repositories/", data)
   };
 
   return (

@@ -38,7 +38,7 @@ export default function CreateProcessPage() {
   const fetchRepository = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/repositories?_id=${searchParams.get("repository")}&select=parameters+data_ready+name+version`);
+      const response = await api.get(`/repositories/?_id=${searchParams.get("repository")}&select=parameters+data_ready+name+version`);
       setRepository(response.data.items[0] || {});
       setNumbersParams(response.data.items[0]?.parameters.filter((p) => p.type === "number") || []);
     } catch (error) {

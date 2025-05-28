@@ -20,10 +20,8 @@ export default function ShowRecordPage() {
   const fetchRepository = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/repositories?_id=${searchParams.get("repository")}&select=name+version+data_ready+current_data_size+parameters`);
-      const response2 = await api.get(`/records/${searchParams.get("repository")}?_id=${id}`);
+      const response = await api.get(`/repositories/?_id=${searchParams.get("repository")}&select=name+version+data_ready+current_data_size+parameters`);
       setRecord(response2.data.items[0] || {});
-      setRepository(response.data.items[0] || {});
     } catch (error) {
       console.error("Error fetching repositories:", error);
     } finally {
