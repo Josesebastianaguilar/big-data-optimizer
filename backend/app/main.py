@@ -10,7 +10,7 @@ import os
 load_dotenv()
 FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
-app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
+app = FastAPI(docs_url=False, redoc_url=False, openapi_url=False, redirect_slashes=False)
 
 # CORS configuration
 app.add_middleware(
