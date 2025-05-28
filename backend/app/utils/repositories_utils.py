@@ -1,6 +1,12 @@
+import pandas as pd
+import mimetypes
+import logging
+import os
+import asyncio
+import json
 from fastapi import Request, Response, HTTPException
 from typing import List, Any
-from app.database import db, recreate_records_indexes_from_repositories
+from app.database import db, recreate_records_indexes_from_repositories, recreate_records_indexes_from_repositories
 from app.models.repository import Repository
 from pathlib import Path
 from bson.objectid import ObjectId
@@ -8,17 +14,10 @@ from fastapi import UploadFile
 from dotenv import load_dotenv
 from datetime import datetime
 from io import BytesIO
-import pandas as pd
-import mimetypes
-import logging
-import os
-import asyncio
-import json
+
 
 load_dotenv()
-logging.basicConfig(filename=os.getenv("ERROR_LOG_PATH", "error.log"), level=logging.ERROR)
-logging.basicConfig(filename=os.getenv("INFO_LOG_PATH", "info.log"), level=logging.INFO)
-logging.basicConfig(filename=os.getenv("WARNING_LOG_PATH", "warning.log"), level=logging.WARNING)
+UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
 
 async def store_repository_records(repository: Repository, parameters: List[dict], csv_data: pd.DataFrame, file_size: float, delete_existing_records: bool = False):
     if delete_existing_records:
@@ -37,7 +36,7 @@ async def store_repository_records(repository: Repository, parameters: List[dict
         
         num_records = len(records)
         
-        batch_size = 100_000
+        batch_size = 10000
         for i in range(0, num_records, batch_size):
             batch = records[i:i + batch_size]
             await db["records"].insert_many(batch)
@@ -59,7 +58,7 @@ async def store_repository_records(repository: Repository, parameters: List[dict
         await recreate_records_indexes_from_repositories()
         logging.info(f"Updated repository {repository['_id']} with {num_records} records")
         if repository["large_file"] and repository["file_path"]:
-            path = Path(repository["file_path"])
+            path = Path(f"{UPLOAD_DIR}/{repository['file_path']}")
             if path.exists():
                 try:
                     path.unlink()
@@ -92,7 +91,7 @@ async def process_file(repository: dict, delete_existing_records: bool = False) 
     if "file" in repository and repository["file"] is not None:
         file_content = repository["file"]
     elif repository.get("large_file") is True and repository["file_path"] is not None:
-        file_content = read_file_from_path(repository["file_path"])
+        file_content = read_file_from_path(f"{UPLOAD_DIR}/{repository['file_path']}")
     else:
         logging.error("No file or file_path provided for processing.")
         raise ValueError("No file or file_path provided for processing.")
@@ -226,3 +225,25 @@ async def get_repository(repository_id: str) -> dict:
         raise HTTPException(status_code=500, detail="Repository has no records")
     
     return repository
+
+async def delete_repository_related_data(repository_id: str):
+    """
+    Delete all records and processes related to the repository.
+    """
+    try:
+        BATCH_SIZE = 10000
+        while True:
+            result = await db["records"].delete_many({"repository": ObjectId(repository_id)}, limit=BATCH_SIZE)
+            if result.deleted_count < BATCH_SIZE:
+                break
+        
+        while True:
+            result = await db["processes"].delete_many({"repository": ObjectId(repository_id)}, limit=BATCH_SIZE)
+            if result.deleted_count < BATCH_SIZE:
+                break
+        
+        await recreate_records_indexes_from_repositories()
+        logging.info(f"Deleted all records and processes for repository {repository_id}")
+    except Exception as e:
+        logging.error(f"Error deleting records and processes for repository {repository_id}: {e}")
+        raise HTTPException(status_code=500, detail=f"Error deleting records and processes for repository {repository_id}: {e}")

@@ -127,7 +127,7 @@ export default function RepositoryForm({
             <span>Is Large File</span>
           </div>
           <div className={largeFile ? 'visible':  'hidden'}>
-            <label className="block text-sm font-medium text-gray-700">File Path</label>
+            <label className="block text-sm font-medium text-gray-700">File Name</label>
             <input
               type="text"
               value={filePath}
@@ -136,7 +136,7 @@ export default function RepositoryForm({
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               required={largeFile}
             />
-            <label className="mt-2 block text-sm font-medium text-gray-700">Make sure the file path entered corresponds to a file uploaded to the server.</label>
+            <label className="mt-2 block text-sm font-medium text-gray-700">Make sure the file has been uploaded to {process.env.NEXT_PUBLIC_UPLOAD_DIR}.</label>
           </div>
           <div className={largeFile ? 'hidden':  'visible'}>
             <label className="block text-sm font-medium text-gray-700">CSV File</label>
