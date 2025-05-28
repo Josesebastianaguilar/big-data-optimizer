@@ -1,38 +1,51 @@
-version: '3.8'
-
+# docker-compose.yml
 services:
-  mongodb:
+  mongo:
     image: mongo:6.0
-    container_name: mongodb
+    container_name: bigdata_mongo
     restart: unless-stopped
     environment:
-      MONGO_INITDB_ROOT_USERNAME: youruser
-      MONGO_INITDB_ROOT_PASSWORD: yourpassword
+      # Optional: create a root user
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-password}
+    volumes:
+      - mongo-data:/data/db
     ports:
       - "27017:27017"
-    volumes:
-      - ./data/mongodb:/data/db
 
   backend:
     build:
       context: ./backend
-    container_name: backend
+      dockerfile: Dockerfile
+    container_name: big_data_optimizer_backend
     restart: unless-stopped
+    env_file:
+      - ./backend/.env       # make sure this file exists
+    depends_on:
+      - mongo
     ports:
       - "8000:8000"
-    env_file:
-      - ./backend/.env
-    depends_on:
-      - mongodb
-    command: uvicorn app.main:app --host 0.0.0.0 --port 8000 --reload
+    command: >
+      uvicorn app.main:app
+      --host 0.0.0.0
+      --port 8000
+      --workers 4
+    volumes:
+      - ${UPLOAD_DIR}:/app/backend/uploads
 
   frontend:
     build:
       context: ./frontend
-    container_name: frontend
+      dockerfile: Dockerfile
+    container_name: big_data_optimizer_frontend
     restart: unless-stopped
-    ports:
-      - "3000:3000"
+    env_file:
+      - ./frontend/.env.local      # optional, if you have env vars for API URL
     depends_on:
       - backend
-    command: npm run dev
+    ports:
+      - "3000:3000"
+    command: npm run start
+
+volumes:
+  mongo-data:

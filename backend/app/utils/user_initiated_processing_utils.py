@@ -198,7 +198,7 @@ async def start_user_initiated_process(process_id: str, repository_id: str, acti
     try:
       total_records = await db["records"].count_documents({"repository": ObjectId(repository_id)})
       records = []
-      batch_size = 10000
+      batch_size = 100_000
       for i in range(0, total_records, batch_size):
         batch = await db["records"].find({"repository": ObjectId(repository_id)}).skip(i).limit(batch_size).to_list(length=None)
         records.extend(batch)

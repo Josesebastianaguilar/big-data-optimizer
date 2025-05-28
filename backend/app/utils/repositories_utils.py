@@ -6,7 +6,7 @@ import asyncio
 import json
 from fastapi import Request, Response, HTTPException
 from typing import List, Any
-from app.database import db, recreate_records_indexes_from_repositories, recreate_records_indexes_from_repositories
+from app.database import db, recreate_records_indexes_from_repositories
 from app.models.repository import Repository
 from pathlib import Path
 from bson.objectid import ObjectId
@@ -36,7 +36,7 @@ async def store_repository_records(repository: Repository, parameters: List[dict
         
         num_records = len(records)
         
-        batch_size = 10000
+        batch_size = 100_000
         for i in range(0, num_records, batch_size):
             batch = records[i:i + batch_size]
             await db["records"].insert_many(batch)
@@ -55,7 +55,6 @@ async def store_repository_records(repository: Repository, parameters: List[dict
             "parameters": parameters,
         }
         await db["repositories"].update_one({"_id": ObjectId(repository['_id'])}, {"$set": repository_data})
-        await recreate_records_indexes_from_repositories()
         logging.info(f"Updated repository {repository['_id']} with {num_records} records")
         if repository["large_file"] and repository["file_path"]:
             path = Path(f"{UPLOAD_DIR}/{repository['file_path']}")
@@ -68,6 +67,8 @@ async def store_repository_records(repository: Repository, parameters: List[dict
                     raise ValueError(f"Error deleting file at {repository['file_path']}: {e}")
             else:
                 logging.warning(f"File at {repository['file_path']} does not exist")
+        
+        asyncio.create_task(recreate_records_indexes_from_repositories())
         
 
     except Exception as e:
@@ -226,24 +227,31 @@ async def get_repository(repository_id: str) -> dict:
     
     return repository
 
+
+async def delete_collection_in_batches(collection, filter_query, batch_size=100_000):
+    while True:
+        # Find a batch of _ids to delete
+        ids = await collection.find(filter_query, {"_id": 1}).limit(batch_size).to_list(length=batch_size)
+        if not ids:
+            break
+        id_list = [doc["_id"] for doc in ids]
+        result = await collection.delete_many({"_id": {"$in": id_list}})
+        if result.deleted_count < batch_size:
+            break
+
+
 async def delete_repository_related_data(repository_id: str):
     """
     Delete all records and processes related to the repository.
     """
     try:
-        BATCH_SIZE = 10000
-        while True:
-            result = await db["records"].delete_many({"repository": ObjectId(repository_id)}, limit=BATCH_SIZE)
-            if result.deleted_count < BATCH_SIZE:
-                break
+        logging.info(f"Deleting all records and processes for repository {repository_id}")
+        filter_query = {"repository": ObjectId(repository_id)}
+        await delete_collection_in_batches(db["records"], filter_query)
+        await delete_collection_in_batches(db["processes"], filter_query)
         
-        while True:
-            result = await db["processes"].delete_many({"repository": ObjectId(repository_id)}, limit=BATCH_SIZE)
-            if result.deleted_count < BATCH_SIZE:
-                break
-        
-        await recreate_records_indexes_from_repositories()
+        asyncio.create_task(recreate_records_indexes_from_repositories())
         logging.info(f"Deleted all records and processes for repository {repository_id}")
     except Exception as e:
         logging.error(f"Error deleting records and processes for repository {repository_id}: {e}")
-        raise HTTPException(status_code=500, detail=f"Error deleting records and processes for repository {repository_id}: {e}")
+        raise ValueError(f"Error deleting records and processes for repository {repository_id}: {e}")
