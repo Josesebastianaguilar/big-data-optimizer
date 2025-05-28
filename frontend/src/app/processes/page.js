@@ -81,7 +81,7 @@ export default function ProcessesListPage() {
   const validate = async () => {
     try {
       setLoading(true);
-      const response = await api.put("/processes/validate/");
+      const response = await api.put("/processes/validate");
       fetchProcesses(page, limit);
     } catch (error) {
       console.error("Error validating process:", error);
@@ -279,7 +279,7 @@ export default function ProcessesListPage() {
                                             ))}
                                           </td>
                                           <td className="text-center px-2 py-2 text-sm">{proc.status}</td>
-                                          <td className="text-center px-2 py-2 text-sm">{formatDuration(proc.duration)}</td>
+                                          <td className="text-center px-2 py-2 text-sm">{proc.duration ? formatDuration(proc.duration) : '-'}</td>
                                           <td className="text-center px-2 py-2 text-sm">{proc.input_data_size}</td>
                                           <td className="text-center px-2 py-2 text-sm">
                                             {proc.task_process === 'filter' && <span>{proc.output_data_size || '-'}</span>}
