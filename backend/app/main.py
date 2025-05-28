@@ -4,13 +4,18 @@ from fastapi.middleware.cors import CORSMiddleware
 from app.routers import auth, repositories, records, processes
 from app.cron.cron_jobs import start_cron_jobs, stop_cron_jobs
 from app.database import create_indexes
+from dotenv import load_dotenv
+import os
+
+load_dotenv()
+FRONTEND_URL = os.getenv("FRONTEND_URL", "http://localhost:3000")
 
 app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["http://localhost:3000"],  # Replace with your React frontend URL
+    allow_origins=["FRONTEND_URL"],  # Replace with your React frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
