@@ -55,7 +55,7 @@ export default function ProcessShowView() {
   const fetchProcess = async () => {
     try {
       setLoading(true);
-      const response = await api.get(`/processes/${searchParams.get("repository")}?_id=${id}`);
+      const response = await api.get(`/processes/${searchParams.get("repository")}?_id=${id}&select=parameters+task_process+actions+status+process_id+optimized+trigger_type+start_time+end_time+duration+input_data_size+output_data_size+errors+valid+validated+created_at+updated_at+iteration+repository_version+repository+metrics`);
       setProcess(() => response.data.items[0] || null);
       setLineChartData(() => {
         const metrics = response.data.items[0].metrics || [];
@@ -190,7 +190,7 @@ export default function ProcessShowView() {
             >
               <FaPlus className="w-4 h-4" />
             </Link>
-            {process.results.length && false && (<Link
+            {process.results?.length && false && (<Link
               title="Show Results"
               href={`/processes/results/${process._id}`}
               className="bg-slate-500  hover:bg-slate-600 text-white mr-2 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-offset-2"
@@ -220,7 +220,7 @@ export default function ProcessShowView() {
             <div><strong>Trigger Type:</strong> {capitalize(process.trigger_type)}</div>
             <div><strong>Start Time:</strong> {formatTimestamp(process.start_time)}</div>
             <div><strong>End Time:</strong> {formatTimestamp(process.end_time)}</div>
-            <div><strong>Duration:</strong> {formatTimestamp(process.duration)}</div>
+            <div><strong>Duration:</strong> {process.duration ? formatTimestamp(process.duration) : '-'}</div>
             <div><strong>Input # of records:</strong> {process.input_data_size}</div>
             {process.task_process !== 'aggregation' && <div><strong>Output # number of records:</strong> {process.output_data_size}</div>}
             <div><strong>Errors:</strong> {process.errors ? process.errors : <span className="text-green-600">None</span>}</div>
