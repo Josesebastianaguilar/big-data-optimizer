@@ -1,19 +1,5 @@
 # docker-compose.yml
 services:
-  mongo:
-    image: mongo:6.0
-    container_name: bigdata_mongo
-    restart: unless-stopped
-    environment:
-      # Optional: create a root user
-      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME:-admin}
-      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD:-password}
-    volumes:
-      - mongo-data:/data/db
-    ports:
-      - "27017:27017"
-    command: mongod --bind_ip ${MONGO_BIND_IP}
-
   backend:
     build:
       context: ./backend
@@ -22,15 +8,13 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env       # make sure this file exists
-    depends_on:
-      - mongo
     ports:
       - "8000:8000"
     command: >
       uvicorn app.main:app
       --host 0.0.0.0
       --port 8000
-      --workers 4
+      --workers $(nproc)
     volumes:
       - ${UPLOAD_DIR}:/app/backend/uploads
 
@@ -47,6 +31,3 @@ services:
     ports:
       - "3000:3000"
     command: npm run start
-
-volumes:
-  mongo-data:
