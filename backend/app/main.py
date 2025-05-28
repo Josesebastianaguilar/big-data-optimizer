@@ -15,7 +15,7 @@ app = FastAPI(docs_url=None, redoc_url=None, openapi_url=None)
 # CORS configuration
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["FRONTEND_URL"],  # Replace with your React frontend URL
+    allow_origins=[FRONTEND_URL],  # Replace with your React frontend URL
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
