@@ -12,6 +12,7 @@ services:
       - mongo-data:/data/db
     ports:
       - "27017:27017"
+    command: mongod --bind_ip ${MONGO_BIND_IP}
 
   backend:
     build:
