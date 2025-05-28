@@ -21,7 +21,7 @@ export default function RegisterPage() {
 
   const register = async (data) => {
     try {
-      const response = await api.post("/auth/register/", data);
+      const response = await api.post("/auth/register", data);
       const { access_token, username, role } = response.data;
       login(access_token, username, role);
       router.push("/");
