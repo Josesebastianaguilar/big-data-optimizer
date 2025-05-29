@@ -4,6 +4,7 @@ import logging
 import os
 import asyncio
 import json
+import app.logging_config
 from fastapi import Request, Response, HTTPException
 from typing import List, Any
 from app.database import db, recreate_records_indexes_from_repositories
