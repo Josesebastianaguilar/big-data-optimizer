@@ -1,5 +1,16 @@
 # docker-compose.yml
 services:
+  mongo:
+    image: mongo:6.0
+    container_name: big_data_optimizer_mongo
+    restart: unless-stopped
+    environment:
+      MONGO_INITDB_ROOT_USERNAME: ${MONGO_INITDB_ROOT_USERNAME}
+      MONGO_INITDB_ROOT_PASSWORD: ${MONGO_INITDB_ROOT_PASSWORD}
+    ports:
+      - "27017:27017"
+    volumes:
+      - mongo-data:/data/db
   backend:
     build:
       context: ./backend
@@ -8,6 +19,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env       # make sure this file exists
+    depends_on:
+      - mongo
     ports:
       - "8000:8000"
     command: >
@@ -33,3 +46,6 @@ services:
     ports:
       - "3000:3000"
     command: npm run start
+
+volumes:
+  mongo-data:
