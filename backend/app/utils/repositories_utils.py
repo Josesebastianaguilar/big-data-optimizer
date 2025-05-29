@@ -92,6 +92,7 @@ async def process_file(repository: dict, delete_existing_records: bool = False) 
     if "file" in repository and repository["file"] is not None:
         file_content = repository["file"]
     elif repository.get("large_file") is True and repository["file_path"] is not None:
+        logging.info(f"Processing large file from path: {UPLOAD_DIR}/{repository['file_path']}")
         file_content = read_file_from_path(f"{UPLOAD_DIR}/{repository['file_path']}")
     else:
         logging.error("No file or file_path provided for processing.")
