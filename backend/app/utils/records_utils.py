@@ -85,7 +85,6 @@ async def store_repository_records(repository: Repository, parameters: List[dict
         for i in range(0, num_records, batch_size):
             batch = records[i:i + batch_size]
             await db["records"].insert_many(batch)
-            logging.info(f"Inserted {len(batch)} records for repository {repository['_id']}")
         
         logging.info(f"Inserted total {num_records} records for repository {repository['_id']}")
 
