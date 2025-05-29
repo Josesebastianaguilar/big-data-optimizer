@@ -2,15 +2,12 @@ from fastapi import APIRouter, Response, Request, HTTPException, Depends
 from app.utils.auth_utils import get_current_user
 from app.models.record import Record
 from app.utils.general_utils import get_query_params, validate_processes, validate_parameters, validate_operator, validate_aggregations, validate_aggregation_parameter_types
-from app.utils.user_initiated_processing_utils import start_user_initiated_process
 from app.utils.repositories_utils import get_repository
 from app.database import db
 from bson.objectid import ObjectId
 from bson import json_util
 from datetime import datetime
 from dotenv import load_dotenv
-from app.utils.validation_utils import init_validation
-import asyncio
 import logging
 
 router = APIRouter()
@@ -97,8 +94,7 @@ async def process_data(repository_id: str, request: Request, current_user: dict 
         processes_optimized.append({**base_aggregation_process, "optimized": True})
     try:    
         await db["processes"].insert_many(processes_non_optimized + processes_optimized)
-        
-        asyncio.create_task(start_user_initiated_process(str(process_id), repository_id, all_processes))
+        await db["jobs"].insert_one({"type": "start_process", "data": {"process_id": str(process_id), "repository_id": str(repository_id), "actions": all_processes, "iteration": 1}})
         
         return Response(status_code=200, content=json_util.dumps({"process_id": str(process_id), "iteration": 1, "message": "Process started successfully"}), media_type="application/json")
     except Exception as e:
@@ -154,8 +150,7 @@ async def iterate_process(process_id: str, current_user: dict = Depends(get_curr
             })
         
         await db["processes"].insert_many(new_iteration_processes)
-        
-        asyncio.create_task(start_user_initiated_process(str(process_id), str(repository["_id"]), actions, current_iteration + 1))
+        await db["jobs"].insert_one({"type": "start_process", "data": {"process_id": str(process_id), "repository_id": str(repository["_id"]), "actions": actions, "iteration": current_iteration + 1}})
         
         return Response(status_code=200, content=json_util.dumps({"process_id": process_id, "iteration": current_iteration + 1, "message": "Process iteration started successfully"}), media_type="application/json")
     except Exception as e:
@@ -168,7 +163,8 @@ async def validate_processes_endpoint(request: Request, current_user: dict = Dep
     Validate processes.
     """
     try:
-        asyncio.create_task(init_validation())
+        await db["jobs"].insert_one({"type": "validate_processes", "data": {}})
+        
         return Response(status_code=201, content=json_util.dumps({"message": "validation_started"}), media_type="application/json")
     except Exception as e:
         logging.error(f"Error validating processes: {str(e)}")

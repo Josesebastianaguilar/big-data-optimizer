@@ -32,6 +32,21 @@ services:
       --proxy-headers
     volumes:
       - ${UPLOAD_DIR}:/app/backend/uploads
+  
+  worker_async:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: big_data_optimizer_worker_async
+    restart: unless-stopped
+    env_file:
+      - ./backend/.env
+    depends_on:
+      - mongo
+    command: >
+      python -m app.workers.async_worker
+    volumes:
+      - ${UPLOAD_DIR}:/app/backend/uploads
 
   frontend:
     build:

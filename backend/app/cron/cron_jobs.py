@@ -4,14 +4,20 @@ from apscheduler.schedulers.asyncio import AsyncIOScheduler
 from app.utils.cron_initiated_processing_utils import prepare_cron_initiated_processes
 from app.utils.validation_utils import init_validation
 from dotenv import load_dotenv
+from app.database import db
 import logging
 import os
-import asyncio
 
 load_dotenv()
 
 PROCESSING_HOURS = list(map(int, os.getenv("PROCESSING_HOURS", "4,8,16,20").split(",")))
 VALIDATION_HOURS = list(map(int, os.getenv("VALIDATION_HOURS", "8").split(",")))
+
+async def enqueue_prepare_cron_processes_job():
+    await db["jobs"].insert_one({"type": "prepare_cron_processes", "data": {}})
+
+async def enqueue_validate_processes_job():
+    await db["jobs"].insert_one({"type": "validate_processes", "data": {}})
 
 # Initialize the scheduler
 #For asyncio-based applications, use AsyncIOScheduler
@@ -26,7 +32,7 @@ def start_cron_jobs():
     # Add a cron job to run every day at midnight
     for hour in PROCESSING_HOURS:
         scheduler.add_job(
-            prepare_cron_initiated_processes,
+            enqueue_prepare_cron_processes_job,
             CronTrigger(hour=hour, minute=0),  # Run every day at the specified hour
             id=f"prepare_cron_initiated_process_{hour}",  # Unique ID for the job
             replace_existing=True,
@@ -34,7 +40,7 @@ def start_cron_jobs():
     
     for hour in VALIDATION_HOURS:
         scheduler.add_job(
-            init_validation,
+            enqueue_validate_processes_job,
             CronTrigger(hour=hour, minute=0),  # Run every day at the specified hour
             id=f"init_validation_{hour}",  # Unique ID for the job
             replace_existing=True,

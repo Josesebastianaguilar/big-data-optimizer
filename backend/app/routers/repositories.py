@@ -1,9 +1,8 @@
-import asyncio
 from fastapi import APIRouter, Response, Request, HTTPException, Depends, Form, File, UploadFile
 from app.utils.auth_utils import get_current_user
 from app.models.repository import Repository
 from app.utils.general_utils import get_query_params
-from app.utils.repositories_utils import upsert_repository, delete_repository_related_data
+from app.utils.repositories_utils import upsert_repository
 from app.database import db
 from bson.objectid import ObjectId
 from bson import json_util
@@ -65,8 +64,7 @@ async def delete_repository(repository_id: str, current_user: dict = Depends(get
 
     try:
         await db["repositories"].delete_one({"_id": ObjectId(repository_id)})
-        
-        asyncio.create_task(delete_repository_related_data(repository_id))
+        await db["jobs"].insert_one({"type": "delete_repository", "data": {"repository_id": repository_id}})        
 
         return Response(status_code=200, content=json_util.dumps({"_id": repository_id, "message": "Repository deleted successfully. Records and processes related will be removed in the background"}), media_type="application/json")
     except Exception as e:
