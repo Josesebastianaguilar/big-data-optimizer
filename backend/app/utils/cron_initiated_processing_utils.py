@@ -183,7 +183,7 @@ async def start_cron_initiated_process(process_id: str, repository_id: str, acti
   processes = await db["processes"].find({"process_id": process_id, "trigger_type": "system", "iteration": iteration, "status": "in_progress"}).to_list(length=None)
   optimized_processes = [process for process in processes if process["optimized"] is True]
   non_optimized_processes = [process for process in processes if process["optimized"] is False]
-  batch_size = 100_000
+  batch_size = 5000
   for i in range(0, total_records, batch_size):
     batch = await db["records"].find({"repository": ObjectId(repository_id)}).skip(i).limit(batch_size).to_list(length=None)
     records.extend(batch)

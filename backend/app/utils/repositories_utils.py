@@ -36,7 +36,7 @@ async def store_repository_records(repository: Repository, parameters: List[dict
         
         num_records = len(records)
         
-        batch_size = 100_000
+        batch_size = 5000
         for i in range(0, num_records, batch_size):
             batch = records[i:i + batch_size]
             await db["records"].insert_many(batch)
@@ -228,7 +228,7 @@ async def get_repository(repository_id: str) -> dict:
     return repository
 
 
-async def delete_collection_in_batches(collection, filter_query, batch_size=100_000):
+async def delete_collection_in_batches(collection, filter_query, batch_size=5000):
     while True:
         # Find a batch of _ids to delete
         ids = await collection.find(filter_query, {"_id": 1}).limit(batch_size).to_list(length=batch_size)
