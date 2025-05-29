@@ -9,8 +9,10 @@ import { FaArrowLeft } from "react-icons/fa";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
 import { useRouter } from 'next/navigation'
+import { useSnackbar } from "@/components/SnackbarContext";
 
 export default function LoginPage() {
+  const { showSnackbar } = useSnackbar();
   const router = useRouter()
   const { token, login } = useAuth();
   useEffect(() => {
@@ -24,10 +26,13 @@ export default function LoginPage() {
       const response = await api.post("/auth/login", data);
       const { access_token, username, role } = response.data;
       login(access_token, username, role);
+      showSnackbar("Login successful! Welcome back.", "success", true, "top-right");
       router.push("/");
       
       return;
     } catch (error) {
+      showSnackbar(`Error during login: ${error?.message}. Detail: ${error?.response?.data?.detail}`, "error", false, "bottom-right");
+      console.log('error', error);
       throw new Error(`Error during login: ${error?.message}. Detail: ${error?.response?.data?.detail}`);
     }
   };

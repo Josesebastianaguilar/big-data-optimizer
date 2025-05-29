@@ -10,8 +10,10 @@ import { FaChevronDown, FaChevronRight, FaSearch, FaCheckCircle, FaWindowClose, 
 import { useAuth } from "@/context/AuthContext";
 import api from "@/app/api";
 import Link from "next/link";
+import { useSnackbar } from "@/components/SnackbarContext";
 
 export default function ProcessesListPage() {
+  const { showSnackbar } = useSnackbar();
   const { token, role, authLoading } = useAuth();
   const [performance_types] = useState(['optimized', 'non_optimized']);
   const [triggers] = useState(['user', 'system']);
@@ -50,6 +52,12 @@ export default function ProcessesListPage() {
       const response = await api.get(`/repositories/?_id=${searchParams.get("repository")}`);
       setRepository(response.data.items[0]);
     } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        showSnackbar("Unauthorized access, please log in again", "error", false, "bottom-right");
+        router.push("/login");
+        return 
+      }
+      showSnackbar("Error fetching repository details", "error", false, "bottom-right");
       console.error("Error fetching repositories:", error);
     } finally {
       setLoading(false);
@@ -62,6 +70,7 @@ export default function ProcessesListPage() {
       const response = await api.get(`/processes/${searchParams.get("repository")}?page=${newPage}&limit=${newLimit}&select=process_id+trigger_type+task_process+actions+status+duration+input_data_size+output_data_size+errors+validated+valid+created_at+updated_at+iteration+repository_version+optimized`);
       if (page > response.data.totalPages && response.data.items.length) {
         fetchProcesses(1, 10);
+        showSnackbar("Current page exceeds total pages, resetting to page 1", "warning", true, "bottom-right");
       } else {
         setPage(newPage || 1);
         setLimit(newLimit || 10);
@@ -72,6 +81,12 @@ export default function ProcessesListPage() {
         setTotalItems(response.data.totalItems);
       }
     } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        showSnackbar("Unauthorized access, please log in again", "error", false, "bottom-right");
+        router.push("/login");
+        return 
+      }
+      showSnackbar("Error fetching processes", "error", false, "bottom-right");
       console.error("Error fetching processes:", error);
     } finally {
       setLoading(false);
@@ -81,9 +96,17 @@ export default function ProcessesListPage() {
   const validate = async () => {
     try {
       setLoading(true);
-      const response = await api.put("/processes/validate");
+      await api.put("/processes/validate");
+      showSnackbar("Processes validation started successfully", "success", true, "bottom-right");
+      showSnackbar("The system will take some time to validate all processes.", "info", false, "bottom-right");
       fetchProcesses(page, limit);
     } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        showSnackbar("Unauthorized access, please log in again", "error", false, "bottom-right");
+        router.push("/login");
+        return
+      }
+      showSnackbar("Error validating processes", "error", false, "bottom-right");
       console.error("Error validating process:", error);
     } finally {
       setLoading(false);
@@ -111,8 +134,16 @@ export default function ProcessesListPage() {
     try {
       setLoading(true);
       const response = await api.post(`/processes/iterate/${process_id}`);
+      showSnackbar(`Process ${process_id} iteratation started successfully`, "success", true, "bottom-right");
+      showSnackbar(`The system will take some time to iterate the process ${process_id}.`, "info", false, "bottom-right");
       fetchProcesses(page, limit);
     } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        showSnackbar("Unauthorized access, please log in again", "error", false, "bottom-right");
+        router.push("/login");
+        return
+      }
+      showSnackbar(`Error iterating process ${process_id}`, "error", false, "bottom-right");
       console.log(`Error iterating process_id ${process_id}`)
     } finally {
       setLoading(false);

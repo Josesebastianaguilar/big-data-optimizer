@@ -8,11 +8,13 @@ import PageSize from "@/components/PageSize";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { FaArchive, FaSearch, FaEdit, FaTrash, FaList, FaPlus, FaShareSquare, FaProjectDiagram, FaSpinner } from "react-icons/fa";
 import { useAuth } from "@/context/AuthContext";
+import { useSnackbar } from "@/components/SnackbarContext";
 import api from "@/app/api";
 import Link from "next/link";
 
 export default function RepositoriesPage() {
-  const { token, role } = useAuth();
+  const { showSnackbar } = useSnackbar();
+  const { token, role, authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [repositories, setRepositories] = useState([]);
   const [page, setPage] = useState(1);
@@ -26,6 +28,7 @@ export default function RepositoriesPage() {
       const response = await api.get(`/repositories/?page=${newPage}&limit=${newLimit}`);
       if (page > response.data.totalPages && response.data.items.length) {
         fetchRepositories(1, 10);
+        showSnackbar("Current page exceeds total pages, resetting to page 1", "warning", true, "bottom-right");
       }
       else {
         setPage(newPage || 1);
@@ -33,8 +36,10 @@ export default function RepositoriesPage() {
         setRepositories(response.data.items);
         setTotalPages(response.data.totalPages);
         setTotalItems(response.data.totalItems);
+
       }
     } catch (error) {
+      showSnackbar("Error fetching repositories", "error", false, "bottom-right");
       console.error("Error fetching repositories:", error);
     } finally {
       setLoading(false);
@@ -42,8 +47,10 @@ export default function RepositoriesPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
     fetchRepositories(1, 10); 
-  }, []);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [authLoading]);
   
 
   const [showModal, setShowModal] = useState(false);
@@ -59,9 +66,13 @@ export default function RepositoriesPage() {
       await api.delete(`/repositories/${repositoryToDelete._id.$oid}`);
       setRepositories(prev => prev.filter((repo) => repo._id.$oid !== repositoryToDelete._id.$oid));
       setShowModal(false);
+      showSnackbar(`Repository "${repositoryToDelete.name}" deleted successfully`, "success", true, "bottom-right");
+      showSnackbar(`The system will take some time to delete all records and processes of ${repositoryToDelete.name}.`, "info", false, "bottom-right");
       setRepositoryToDelete(null);
       setTotalItems(prev => prev - 1);
+      
     } catch (error) {
+      showSnackbar(`Error deleting repository ${repositoryToDelete?.name}`, "error", false, "bottom-right");
       console.error("Error deleting repository:", error);
     }
   };

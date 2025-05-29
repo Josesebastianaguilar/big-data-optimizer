@@ -9,8 +9,10 @@ import api from "@/app/api";
 import { FaArrowLeft } from "react-icons/fa";
 import { useAuth } from "@/context/AuthContext";
 import { useEffect } from "react";
+import { useSnackbar } from "@/components/SnackbarContext";
 
 export default function RegisterPage() {
+  const { showSnackbar } = useSnackbar();
   const router = useRouter()
   const { token, login } = useAuth();
   useEffect(() => {
@@ -24,10 +26,12 @@ export default function RegisterPage() {
       const response = await api.post("/auth/register", data);
       const { access_token, username, role } = response.data;
       login(access_token, username, role);
+      showSnackbar("Registration successful! You are now logged in.", "success", true, "top-right");
       router.push("/");
       
       return;
     } catch (error) {
+      showSnackbar(`Error during registration: ${error?.message}. Detail: ${error?.response?.data?.detail}`, "error", false, "bottom-right");
       throw new Error(`Error during login: ${error?.message}. Detail: ${error?.response?.data?.detail}`);
     }
   };

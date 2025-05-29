@@ -3,11 +3,12 @@
 import Link from "next/link";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
-import { FaArrowLeft, FaRedo, FaSearch, FaChartBar, FaPlus, FaArchive, FaCheckCircle, FaWindowClose } from "react-icons/fa";
+import { FaArrowLeft, FaRedo, FaChartBar, FaPlus, FaArchive, FaCheckCircle, FaWindowClose } from "react-icons/fa";
 import { useEffect, useState } from "react";
 import { Line, Doughnut } from "react-chartjs-2";
 import { useParams, useSearchParams, useRouter } from "next/navigation";
 import { useAuth } from "@/context/AuthContext";
+import { useSnackbar } from "@/components/SnackbarContext";
 import api from "@/app/api";
 import {
   Chart as ChartJS,
@@ -23,6 +24,7 @@ import {
 ChartJS.register(LineElement, PointElement, LinearScale, CategoryScale, ArcElement, Tooltip, Legend);
 
 export default function ProcessShowView() {
+  const { showSnackbar } = useSnackbar();
   const router = useRouter();
   const searchParams = useSearchParams();
   const { token, authLoading } = useAuth();
@@ -46,6 +48,12 @@ export default function ProcessShowView() {
         const response = await api.get(`/repositories/?_id=${searchParams.get("repository")}`);
         setRepository(response.data.items[0]);
       } catch (error) {
+        if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+          showSnackbar("You do not have permission to access this page", "error", false, "top-right");
+          router.push("/login");
+          return;
+        }
+        showSnackbar("Error fetching repository details", "error", false, "bottom-right");
         console.error("Error fetching repositories:", error);
       } finally {
         setLoading(false);
@@ -106,6 +114,12 @@ export default function ProcessShowView() {
         };
       });
     } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        showSnackbar("You do not have permission to access this page", "error", false, "top-right");
+        router.push("/login");
+        return;
+      }
+      showSnackbar("Error fetching process details", "error", false, "bottom-right");
       console.error("Error fetching processes:", error);
     } finally {
       setLoading(false);
@@ -133,7 +147,15 @@ export default function ProcessShowView() {
     try {
       setLoading(true);
       await api.post(`/processes/iterate/${process_id}`);
+      showSnackbar(`Process ${process_id} re-iteration started successfully`, "success", true, "bottom-right");
+      showSnackbar(`The system will take some time to re-iterate the process ${process_id}.`, "info", false, "bottom-right");
     } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        showSnackbar("You do not have permission to access this page", "error", false, "top-right");
+        router.push("/login");
+        return;
+      }
+      showSnackbar(`Error iterating process ${process_id}`, "error", false, "bottom-right");
       console.log(`Error iterating process_id ${process_id}`)
     } finally {
       setLoading(false);

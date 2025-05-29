@@ -2,6 +2,7 @@ import { Geist, Geist_Mono } from "next/font/google";
 import { AuthProvider } from "@/context/AuthContext";
 import { FaSpinner }  from "react-icons/fa";
 import { Suspense } from "react";
+import { SnackbarProvider } from "@/components/SnackbarContext";
 import "./globals.css";
 
 const geistSans = Geist({
@@ -29,9 +30,11 @@ export default function RootLayout({ children }) {
         className={`${geistSans.variable} ${geistMono.variable} antialiased`}
       >
         <Suspense fallback={<FaSpinner className="text-center animate-spin inline mr-2 h-8 w-8" />}>
-          <AuthProvider>
-            {children}
-          </AuthProvider>
+          <SnackbarProvider>
+            <AuthProvider>
+              {children}
+            </AuthProvider>
+          </SnackbarProvider>
         </Suspense>
       </body>
     </html>

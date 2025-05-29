@@ -6,15 +6,17 @@ import RecordForm from "@/components/RecordForm";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useSearchParams } from "next/navigation";
-import { FaArrowLeft, FaArchive, FaDatabase, FaShareSquare } from "react-icons/fa";
+import { FaArrowLeft, FaArchive, FaDatabase } from "react-icons/fa";
 import Link from "next/link";
 import api from "@/app/api";
 import { useRouter } from "next/navigation";
+import { useSnackbar } from "@/components/SnackbarContext";
 
 export default function CreateRecordPage() {
+  const { showSnackbar } = useSnackbar();
   const router = useRouter();
   const searchParams = useSearchParams();
-  const { role } = useAuth();
+  const { role, authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [repository, setRepository] = useState({});
 
@@ -24,6 +26,7 @@ export default function CreateRecordPage() {
       const response = await api.get(`/repositories/?_id=${searchParams.get("repository")}&select=name+version+data_ready+current_data_size+parameters`);
       setRepository(response.data.items[0] || {});
     } catch (error) {
+      showSnackbar("Error fetching repository details", "error", false, "bottom-right");
       console.error("Error fetching repositories:", error);
     } finally {
       setLoading(false);
@@ -31,6 +34,11 @@ export default function CreateRecordPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!searchParams.get("repository")) {
+      router.push("/");
+      return;
+    }
     if (role && role !== "admin") {
       router.push("/");
     } else {
@@ -38,7 +46,7 @@ export default function CreateRecordPage() {
     }
   }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  , [role]);
+  , [role, authLoading]);
 
   const handleCreate = (form) => {
     return api.post(`/records/${repository._id.$oid}`, form);

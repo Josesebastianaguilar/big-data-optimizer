@@ -7,11 +7,13 @@ import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { useParams, useSearchParams } from "next/navigation";
+import { useSnackbar } from "@/components/SnackbarContext";
 import api from "@/app/api";
 
 
 export default function ShowRecordPage() {
-  const { role } = useAuth();
+  const { showSnackbar } = useSnackbar();
+  const { role, authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [repository, setRepository] = useState(null);
   const [record, setRecord] = useState(null);
@@ -21,8 +23,9 @@ export default function ShowRecordPage() {
     try {
       setLoading(true);
       const response = await api.get(`/repositories/?_id=${searchParams.get("repository")}&select=name+version+data_ready+current_data_size+parameters`);
-      setRecord(response2.data.items[0] || {});
+      setRepository(response.data.items[0] || {});
     } catch (error) {
+      showSnackbar("Error fetching repository details", "error", false, "bottom-right");
       console.error("Error fetching repositories:", error);
     } finally {
       setLoading(false);
@@ -34,7 +37,11 @@ export default function ShowRecordPage() {
       setLoading(true);
       const response = await api.get(`/records/${searchParams.get("repository")}?_id=${id}`);
       setRecord(response.data.items[0] || {});
-    } catch (error) {
+      if (!response.data.items.length) {
+        showSnackbar("Record not found", "error", false, "top-right");
+      }
+    } catch (error) {      
+      showSnackbar("Error fetching record details", "error", false, "bottom-right");
       console.error("Error fetching repositories:", error);
     } finally {
       setLoading(false);
@@ -42,10 +49,15 @@ export default function ShowRecordPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!searchParams.get("repository")) {
+      router.push("/");
+      return;
+    }
     fetchRepository();
     fetchRecord();
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
@@ -54,7 +66,7 @@ export default function ShowRecordPage() {
         <div className="flex justify-end items-center mb-4">
           {!loading && repository && role === 'admin' && <Link
               title="Edit Record"
-              href={`/records/edit/${record._id.$oid}?repository=${repository?._id?.$oid}`}
+              href={`/records/edit/${repository?._id.$oid}?repository=${repository?._id?.$oid}`}
               className="inline-block bg-green-500 text-white py-2 px-4 mr-2 rounded-md hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
             >
             <FaEdit className="w-4 h-4"/>

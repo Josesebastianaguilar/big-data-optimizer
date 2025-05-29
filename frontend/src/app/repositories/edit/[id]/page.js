@@ -7,12 +7,14 @@ import { useRouter, useParams } from "next/navigation";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
 import { FaArrowLeft, FaArchive, FaSpinner } from "react-icons/fa";
+import { useSnackbar } from "@/components/SnackbarContext";
 import Link from "next/link";
 import api from "@/app/api";
 
 export default function EditRepositoryPage() {
   const { id } = useParams();
-  const { role } = useAuth();
+  const { role, authLoading } = useAuth();
+  const { showSnackbar } = useSnackbar();
   const router = useRouter();
   const [repository, setRepository] = useState({});
   const [loading, setLoading] = useState(false);
@@ -22,24 +24,31 @@ export default function EditRepositoryPage() {
       setLoading(true);
       const response = await api.get(`/repositories/?_id=${id}`);
       setRepository(response.data.items[0] || {});
+      if (!response.data.items.length) {
+        showSnackbar("Repository not found", "error", false, "top-right");
+        router.push("/repositories");
+      }
     } catch (error) {
       console.error("Error fetching repositories:", error);
+      showSnackbar("Error fetching repository details", "error", false, "bottom-right");
     } finally {
       setLoading(false);
     }
   };
 
   useEffect(() => {
+    if (authLoading) return;
     if (role && role === "admin") {
       fetchRepository();
     } else if (role && role !== "admin") {
+      showSnackbar("You do not have permission to access this page", "error", false, "top-right");
       router.push("/");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role]);
+  }, [role, authLoading]);
 
   const handleUpdate = (data) => {
-    return api.put(`/repositories/${repository._id.$oid}`, data)
+    return api.put(`/repositories/${repository._id.$oid}`, data);
   };
 
   return (

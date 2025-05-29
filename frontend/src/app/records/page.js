@@ -10,11 +10,13 @@ import PageSize from "@/components/PageSize";
 import Footer from "@/components/Footer";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { FaArrowLeft, FaPlus, FaSearch, FaEdit, FaTrash, FaDatabase, FaSpinner } from "react-icons/fa";
+import { useSnackbar } from "@/components/SnackbarContext";
 import api from "@/app/api";
 
 export default function RecordsListPage() {
+  const { showSnackbar } = useSnackbar();
   const searchParams = useSearchParams();
-  const { role } = useAuth();
+  const { role, authLoading } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [recordToDelete, setRecordToDelete] = useState(null);
   const [loading, setLoading] = useState(true);
@@ -31,6 +33,7 @@ export default function RecordsListPage() {
       const response = await api.get(`/repositories/?_id=${searchParams.get("repository")}`);
       setRepository(response.data.items[0] || {});
     } catch (error) {
+      showSnackbar("Error fetching repository details", "error", false, "bottom-right");
       console.error("Error fetching repositories:", error);
     } finally {
       setLoading(false);
@@ -43,6 +46,7 @@ export default function RecordsListPage() {
       const response = await api.get(`/records/${searchParams.get("repository")}?page=${newPage}&limit=${newLimit}`);
       if (page > response.data.totalPages) {
         fetchRecords(1, 10);
+        showSnackbar("Current page exceeds total pages, resetting to page 1", "warning", true, "bottom-right");
       } else {
         setPage(newPage || 1);
         setLimit(newLimit || 10);
@@ -51,6 +55,7 @@ export default function RecordsListPage() {
         setTotalItems(response.data.totalItems);
       }
     } catch (error) {
+      showSnackbar("Error fetching records", "error", false, "bottom-right");
       console.error("Error fetching repositories:", error);
     } finally {
       setLoading(false);
@@ -58,10 +63,15 @@ export default function RecordsListPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!searchParams.get("repository")) {
+      router.push("/");
+      return;
+    }
     fetchRepository(); 
     fetchRecords(1, 10);
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [authLoading]);
 
   const handleDeleteClick = (record) => {
     setRecordToDelete(record);
@@ -71,6 +81,7 @@ export default function RecordsListPage() {
   const confirmDelete = async () => {
     try {
       await api.delete(`/records/${recordToDelete._id.$oid}`);
+      showSnackbar(`Record "${recordToDelete._id.$oid}" deleted successfully`, "success", true, "bottom-right");
       setRecords(prev => prev.filter((repo) => repo._id.$oid !== recordToDelete._id.$oid));
       setRepository(prev => ({
         ...prev,
@@ -80,6 +91,7 @@ export default function RecordsListPage() {
       setShowModal(false);
       setRecordToDelete(null);
     } catch (error) {
+      showSnackbar(`Error deleting record ${recordToDelete?._id.$oid}`, "error", false, "bottom-right");
       console.error("Error deleting repository:", error);
     }
   };

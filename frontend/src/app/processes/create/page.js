@@ -8,10 +8,11 @@ import { FaArrowLeft, FaPlus, FaArchive, FaSpinner } from "react-icons/fa";
 import { useSearchParams } from "next/navigation";
 import api from "@/app/api";
 import { useAuth } from "@/context/AuthContext";
+import { useSnackbar } from "@/components/SnackbarContext";
 import { useRouter } from "next/navigation";
 
 export default function CreateProcessPage() {
-  // State for selected actions (order matters: filter always first if selected)
+  const { showSnackbar } = useSnackbar();
   const FILTER_OPERATORS = [
     { key: "==", label: "Equals", types: ["string", "number"] },
     { key: "!=", label: "Not Equals", types: ["string", "number"] },
@@ -42,6 +43,12 @@ export default function CreateProcessPage() {
       setRepository(response.data.items[0] || {});
       setNumbersParams(response.data.items[0]?.parameters.filter((p) => p.type === "number") || []);
     } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        showSnackbar("Unauthorized access. Please log in.", "error", false, "bottom-right");
+        router.push("/login");
+        return;
+      }
+      showSnackbar("Error fetching repository details", "error", false, "bottom-right");
       console.error("Error fetching repositories:", error);
     } finally {
       setLoading(false);
@@ -101,8 +108,16 @@ export default function CreateProcessPage() {
     try {
       setLoading(true);
       await api.post(`/processes/${repository._id.$oid}`, processConfig)
+      showSnackbar("Process created successfully", "success", true, "bottom-right");
+      showSnackbar("The system will take some time to process the data. You can check the status in the processes page.", "info", false, "bottom-right");
       router.push(`/processes?repository=${repository._id.$oid}`);
     } catch (error) {
+      if (error.response && (error.response.status === 401 || error.response.status === 403)) {
+        showSnackbar("Unauthorized access. Please log in.", "error", false, "bottom-right");
+        router.push("/login");
+        return;
+      }
+      showSnackbar("Error creating process", "error", false, "bottom-right");
       console.error("Error creating process:", error);
     } finally {
       setLoading(false);

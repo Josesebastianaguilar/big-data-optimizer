@@ -3,12 +3,16 @@
 import { useState } from "react";
 import { FaSpinner } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import { useSnackbar } from "@/components/SnackbarContext";
 
 export default function RepositoryForm({
   type, // "create" or "edit"
   initialData = {}, // Initial data for edit view
   onSubmit,
 }) {
+  const maxFileSizeMB = parseInt(process.env.NEXT_PUBLIC_MAX_FILE_SIZE || "50", 10);
+  const maxFileSizeBytes = maxFileSizeMB * 1024 * 1024;
+  const { showSnackbar } = useSnackbar();
   const router = useRouter();
   const [name, setName] = useState(initialData.name || "");
   const [description, setDescription] = useState(initialData.description || "");
@@ -48,16 +52,23 @@ export default function RepositoryForm({
         
         if (!largeFile) formData.append("file", file);
       }
-      
       if (type === 'edit'){
         formData.append("parameters", JSON.stringify(parameters));
       }
       
+      
       await onSubmit(formData);
+      
+      showSnackbar(`Repository ${name} ${type === 'edit' ? 'updated' : 'created'} successfully`, "success", true, "top-right");
+      
+      if (type === 'create' || changeFile){
+        showSnackbar(`The system may take some time to store the records of ${name}.`, "info", false, "top-right");
+      }
 
       router.push("/repositories");
     } catch (error) {
       console.error("Error submitting form:", error);
+      showSnackbar(`An error ocurred while${type === 'edit' ? ' editing ' : ' creating '} repository`, "error", false, "top-right");
     } finally{
       setLoading(false);
     }
@@ -143,11 +154,21 @@ export default function RepositoryForm({
             <input
               type="file"
               accept='text/csv'
-              onChange={(e) => setFile(e.target.files[0])}
+              onChange={(e) => {
+                const selectedFile = e.target.files[0];
+                if (selectedFile && selectedFile.size > maxFileSizeBytes) {
+                  showSnackbar(`File size exceeds the maximum allowed size of ${maxFileSizeMB} MB.`, "error", false);
+                  e.target.value = ""; // Reset the input
+                  setFile(null);
+                  return;
+                }
+                setFile(selectedFile);
+              }}
               disabled={loading}
               className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm"
               required={type === "create" && !largeFile}
             />
+            <label className="mt-2 block text-sm font-medium text-gray-700">Max file size {process.env.NEXT_PUBLIC_MAX_FILE_SIZE} MB.</label>
           </div>
         </>
       )}

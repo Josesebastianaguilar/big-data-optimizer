@@ -4,8 +4,10 @@ import React from "react";
 import { useState } from "react";
 import { FaSpinner } from "react-icons/fa";
 import { useRouter } from "next/navigation";
+import { useSnackbar } from "@/components/SnackbarContext";
 
 export default function RecordForm({ repository, record = {}, onSubmit, isEdit = false }) {
+  const { showSnackbar } = useSnackbar();
   const router = useRouter();
   const [loading, setLoading] = useState(false);
   const [form, setForm] = useState(() =>
@@ -27,7 +29,10 @@ export default function RecordForm({ repository, record = {}, onSubmit, isEdit =
       await onSubmit(form);
 
       router.push(`/records?repository=${repository._id.$oid}`);
+      showSnackbar(`Record ${isEdit ? "updated" : "created"} successfully`, "success", true, "top-right");
+      showSnackbar(`Repository ${repository.name} has been updated to version ${repository.version + 1}`, "info", true, "top-right");
     } catch (error) {
+      showSnackbar(`Error ${isEdit ? "updating" : "creating"} record: ${error.message}`, "error", false, "bottom-right");
       console.error("Error submitting form:", error);
     } finally {
       setLoading(false);

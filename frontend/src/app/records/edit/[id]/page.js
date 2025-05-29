@@ -7,12 +7,15 @@ import { FaArrowLeft, FaDatabase, FaArchive } from "react-icons/fa";
 import Link from "next/link";
 import { useState, useEffect } from "react";
 import { useAuth } from "@/context/AuthContext";
-import { useParams, useSearchParams } from "next/navigation";
+import { useParams, useSearchParams, useRouter } from "next/navigation";
+import { useSnackbar } from "@/components/SnackbarContext";
 import api from "@/app/api";
 
 
 export default function EditRecordPage() {
-  const { role } = useAuth();
+  const router = useRouter();
+  const { showSnackbar } = useSnackbar();
+  const { role, authLoading } = useAuth();
   const [loading, setLoading] = useState(true);
   const [repository, setRepository] = useState(null);
   const [record, setRecord] = useState(null);
@@ -26,6 +29,7 @@ export default function EditRecordPage() {
       setRecord(response2.data.items[0] || {});
       setRepository(response.data.items[0] || {});
     } catch (error) {
+      showSnackbar("Error fetching repository details", "error", false, "bottom-right");
       console.error("Error fetching repositories:", error);
     } finally {
       setLoading(false);
@@ -37,7 +41,13 @@ export default function EditRecordPage() {
       setLoading(true);
       const response = await api.get(`/records/${searchParams.get("repository")}?_id=${id}`);
       setRecord(response.data.items[0] || {});
+      if (!response.data.items.length) {
+        showSnackbar("Record not found", "error", false, "top-right");
+        router.push(`/records?repository=${searchParams.get("repository")}`);
+        return;
+      }
     } catch (error) {
+      showSnackbar("Error fetching record details", "error", false, "bottom-right");
       console.error("Error fetching repositories:", error);
     } finally {
       setLoading(false);
@@ -45,6 +55,11 @@ export default function EditRecordPage() {
   };
 
   useEffect(() => {
+    if (authLoading) return;
+    if (!searchParams.get("repository")) {
+      router.push("/");
+      return;
+    }
     if (role && role === "admin") {
       fetchRepository();
       fetchRecord();
@@ -52,7 +67,7 @@ export default function EditRecordPage() {
       router.push("/");
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role]);
+  }, [role, authLoading]);
 
   const handleEdit = (form) => {
     return api.put(`/records/${record._id.$oid}`, form)

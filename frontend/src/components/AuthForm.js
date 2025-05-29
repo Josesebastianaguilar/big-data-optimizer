@@ -60,7 +60,7 @@ export default function AuthForm({ type, onSubmit }) {
               onClick={() => setShowPassword((prev) => !prev)}
               className="cursor-pointer absolute inset-y-0 right-0 flex items-center px-3 text-gray-500 focus:outline-none"
               tabIndex={-1}
-              disabled={loading}
+              disabled={loading || !password || !username}
               aria-label={showPassword ? "Hide password" : "Show password"}
               title={showPassword ? "Hide password" : "Show password"}
             >

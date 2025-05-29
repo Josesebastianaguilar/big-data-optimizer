@@ -1,6 +1,6 @@
 "use client";
 
-import { useParams } from "next/navigation";
+import { useParams, useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import { FaArrowLeft, FaEdit, FaArchive, FaList, FaProjectDiagram, FaShareSquare, FaSpinner } from "react-icons/fa";
@@ -8,9 +8,12 @@ import { useAuth } from "@/context/AuthContext";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import api from "@/app/api";
+import { useSnackbar } from "@/components/SnackbarContext";
 
 export default function ViewRepositoryPage() {
-  const { token, role } = useAuth();
+  const router = useRouter();
+  const { showSnackbar } = useSnackbar();
+  const { token, role, authLoading } = useAuth();
   const { id } = useParams();
   const [repository, setRepository] = useState({});
   const [loading, setLoading] = useState(false);
@@ -21,7 +24,12 @@ export default function ViewRepositoryPage() {
       const response = await api.get(`/repositories/?_id=${id}`);
       console.log('response', response);
       setRepository(response.data.items[0] || {});
+      if (!response.data.items.length) {
+        showSnackbar("Repository not found", "error", false, "top-right");
+        router.push("/repositories");
+      }
     } catch (error) {
+      showSnackbar("Error fetching repository details", "error", false, "bottom-right");
       console.error("Error fetching repositories:", error);
     } finally {
       setLoading(false);
@@ -29,13 +37,10 @@ export default function ViewRepositoryPage() {
   };
 
   useEffect(() => {
-    if (role && role === "admin") {
-      fetchRepository();
-    } else if (role && role !== "admin") {
-      router.push("/");
-    }
+    if (authLoading) return;
+    fetchRepository(); 
   // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [role]);
+  }, [token, authLoading]);
 
   return (
     <div className="min-h-screen flex flex-col bg-gray-50 text-gray-800">
