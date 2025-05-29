@@ -19,3 +19,8 @@ root_logger = logging.getLogger()
 for handler in [error_handler, info_handler, warning_handler]:
     root_logger.addHandler(handler)
 root_logger.setLevel(logging.INFO)
+
+console_handler = logging.StreamHandler()
+console_handler.setLevel(logging.INFO)
+console_handler.setFormatter(formatter)
+root_logger.addHandler(console_handler)
