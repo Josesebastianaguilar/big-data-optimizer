@@ -66,7 +66,7 @@ async def upsert_repository(repository_id, name, description, url, large_file, f
                 
             repository["_id"] = str(result.inserted_id)
             
-            await db["jobs"].insert_one({"type": "process_file", "data": {"repository": repository, "delete_existing_records": False}})
+            await db["jobs"].insert_one({"type": "store_repository_records", "data": {"repository": repository, "delete_existing_records": False}})
 
             return Response(status_code=201, content=json.dumps({"id": str(repository["_id"]), "message": "Repository created successfully"}), media_type="application/json")
         except Exception as e:
@@ -105,7 +105,7 @@ async def upsert_repository(repository_id, name, description, url, large_file, f
                 repository["file"] = None
             
             if ("file" in repository and repository["file"] is not None) or repository["large_file"] is True:
-                await db["jobs"].insert_one({"type": "process_file", "data": {"repository": repository, "delete_existing_records": True}})
+                await db["jobs"].insert_one({"type": "store_repository_records", "data": {"repository": repository, "delete_existing_records": True}})
             
             return Response(status_code=200, content=json.dumps({"id": str(repository_id), "message": "Repository updated successfully"}), media_type="application/json")
 

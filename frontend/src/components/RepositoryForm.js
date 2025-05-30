@@ -174,7 +174,7 @@ export default function RepositoryForm({
       )}
 
       {/* Parameters (Edit View Only) */}
-      {type === "edit" && (
+      {type === "edit" && !changeFile && (
         <div>
           <label className="block text-sm font-medium text-gray-700">Parameters</label>
           <div className="space-y-2">

@@ -15,6 +15,7 @@ import os
 
 load_dotenv()
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
+RECORDS_BATCH_SIZE = int(os.getenv("RECORDS_BATCH_SIZE", "5000"))  # Default to 5000 records per batch
 
 
 def validate_permissions_and_repository(current_user: dict, repository: Any, record: dict):
@@ -64,116 +65,6 @@ async def update_repository_info(repository: Any, type: str):
     
     await db["repositories"].update_one({"_id": repository["_id"]}, {"$set": repository_data})
 
-async def store_repository_records(repository: Repository, parameters: List[dict], csv_data: pd.DataFrame, file_size: float, delete_existing_records: bool = False):
-    if delete_existing_records:
-        try:
-            await db["records"].delete_many({"repository": ObjectId(repository['_id'])})
-            await db["processes"].delete_many({"repository": ObjectId(repository['_id'])})
-            logging.info(f"Deleted existing records and processes for repository {repository['_id']}")
-        except Exception as e:
-            logging.error(f"Error deleting existing records and processes for repository {repository['_id']}: {e}")
-            raise ValueError(f"Error deleting existing records and processes for repository {repository['_id']}: {e}")
-    try:
-        now = datetime.now()
-        csv_data = csv_data.where(pd.notnull(csv_data), None)
-        records_data = csv_data.to_dict(orient="records")
-        records = [{"repository": ObjectId(repository['_id']), "data": record, "created_at": now, "updated_at": now, "version": 0} for record in records_data]
-        
-        num_records = len(records)
-        
-        batch_size = 5000
-        for i in range(0, num_records, batch_size):
-            batch = records[i:i + batch_size]
-            await db["records"].insert_many(batch)
-        
-        logging.info(f"Inserted total {num_records} records for repository {repository['_id']}")
-
-        repository_data = {
-            "data_ready": True,
-            "valid": True,
-            "file_size": file_size,
-            "type": "text/csv",
-            "original_data_size": num_records,
-            "current_data_size": num_records,
-            "data_updated_at": datetime.now(),
-            "parameters": parameters,
-        }
-        await db["repositories"].update_one({"_id": ObjectId(repository['_id'])}, {"$set": repository_data})
-        logging.info(f"Updated repository {repository['_id']} with {num_records} records")
-        path = Path(f"{UPLOAD_DIR}/{repository['file_path']}")
-        if path.exists():
-            try:
-                path.unlink()
-                logging.info(f"Deleted file at {UPLOAD_DIR}/{repository['file_path']}")
-            except Exception as e:
-                logging.error(f"Error deleting file at {repository['file_path']}: {e}")
-                raise ValueError(f"Error deleting file at {repository['file_path']}: {e}")
-        else:
-            logging.warning(f"File at {repository['file_path']} does not exist")
-        
-        await recreate_records_indexes_from_repositories()
-        
-
-    except Exception as e:
-        logging.error(f"Error storing records for repository {repository['_id']}: {e}")
-        raise ValueError(f"Error storing records for repository {repository['_id']}: {e}")
-
-def read_file_from_path(file_path: str) -> bytes:
-    """
-    Read the file content from the given file path.
-    """
-    path = Path(file_path)
-    
-    with path.open("rb") as file:
-        return file.read()
-
-
-async def process_file(repository: dict, delete_existing_records: bool = False) -> List[dict]:
-    """Get parameters from the uploaded CSV file."""
-    file_content = None
-
-    if "file" in repository and repository["file"] is not None:
-        file_content = repository["file"]
-    elif repository["large_file"] is True and repository["file_path"] is not None:
-        logging.info(f"Processing large file from path: {UPLOAD_DIR}/{repository['file_path']}")
-        file_content = read_file_from_path(f"{UPLOAD_DIR}/{repository['file_path']}")
-    else:
-        logging.error("No file or file_path provided for processing.")
-        raise ValueError("No file or file_path provided for processing.")
-    
-    file_size = len(file_content) / (1024 * 1024)
-    csv_data = pd.read_csv(BytesIO(file_content))
-    column_names = list(csv_data.columns)
-    complete_record = None
-    
-    for _, row in csv_data.iterrows():
-        if row.notnull().all():
-            complete_record = row
-            break
-    
-    if complete_record is None:
-        logging.error(f"No complete record found in the CSV file for repository {repository['_id']}")
-        if not csv_data.empty:
-            complete_record = csv_data.loc[csv_data.isnull().sum(axis=1).idxmin()]  # Row with the fewest nulls
-        else:
-            logging.error("The CSV file is empty. Aborting processing.")
-            raise ValueError(f"The CSV file is empty and contains no valid records. at process_file for repository {repository['_id']}")
-        
-    
-    parameters = []
-    
-    for col in column_names:
-        value = complete_record[col]
-        if isinstance(value, (int, float)):
-            column_type = "number"
-        elif isinstance(value, str):
-            column_type = "string"
-        else:
-            column_type = "string"
-        parameters.append({"name": col, "type": column_type})
-
-    await store_repository_records(repository, parameters, csv_data, file_size, delete_existing_records)
-    
 async def delete_collection_in_batches(collection, filter_query, batch_size=10000):
     while True:
         # Find a batch of _ids to delete
@@ -185,7 +76,7 @@ async def delete_collection_in_batches(collection, filter_query, batch_size=1000
         if result.deleted_count < batch_size:
             break
 
-async def delete_repository_related_data(repository_id: str):
+async def delete_repository_related_data(repository_id: str, reset_indexes: bool = True):
     """
     Delete all records and processes related to the repository.
     """
@@ -194,9 +85,120 @@ async def delete_repository_related_data(repository_id: str):
         filter_query = {"repository": ObjectId(repository_id)}
         await delete_collection_in_batches(db["records"], filter_query)
         await delete_collection_in_batches(db["processes"], filter_query)
-        await recreate_records_indexes_from_repositories()
+        if reset_indexes is True:
+            await recreate_records_indexes_from_repositories()
         
         logging.info(f"Deleted all records and processes for repository {repository_id}")
     except Exception as e:
         logging.error(f"Error deleting records and processes for repository {repository_id}: {e}")
         raise ValueError(f"Error deleting records and processes for repository {repository_id}: {e}")
+
+async def store_repository_records(repository: Repository, delete_existing_records: bool = False):
+    try:
+        # Delete existing records if needed
+        if delete_existing_records:
+            try:
+                await delete_repository_related_data(str(repository["_id"]), False)
+            except Exception as e:
+                logging.error(f"Error deleting existing records and processes for repository {repository['_id']}: {e}")
+                raise ValueError(f"Error deleting existing records and processes for repository {repository['_id']}: {e}")
+
+        # Determine file source
+        file_path = None
+        file_content = None
+        if "file" in repository and repository["file"] is not None:
+            logging.info("Processing file from repository object")
+            file_content = repository["file"]
+            file_size = len(file_content) / (1024 * 1024)
+            file_stream = BytesIO(file_content)
+        elif repository.get("large_file") and repository.get("file_path"):
+            logging.info("Processing large file from file_path")
+            file_path = os.path.join(UPLOAD_DIR, repository["file_path"])
+            if not os.path.exists(file_path):
+                logging.error(f"File {file_path} does not exist.")
+                raise ValueError(f"File {file_path} does not exist.")
+            file_size = os.path.getsize(file_path) / (1024 * 1024)
+            file_stream = file_path  # pandas can take a file path
+        else:
+            logging.error("No file or file_path provided for processing.")
+            raise ValueError("No file or file_path provided for processing.")
+
+        now = datetime.now()
+        batch_size = RECORDS_BATCH_SIZE
+        total_inserted = 0
+        parameters = []
+        column_names = []
+        found_complete_row = None
+
+        # Read in chunks
+        logging.info(f"Processing file: {UPLOAD_DIR}/{repository['file_path']}")
+        logging.info(f"Reading CSV file in chunks of {batch_size} rows")
+        for i, chunk in enumerate(pd.read_csv(file_stream, chunksize=batch_size)):
+            chunk = chunk.where(pd.notnull(chunk), None)
+            if i == 0:
+                # Infer columns and types from the first non-empty chunk
+                column_names = list(chunk.columns)
+                # Find a row with no nulls to infer types
+                for _, row in chunk.iterrows():
+                    if row.notnull().all():
+                        found_complete_row = row
+                        break
+                if found_complete_row is None and not chunk.empty:
+                    found_complete_row = chunk.loc[chunk.isnull().sum(axis=1).idxmin()]
+                if found_complete_row is None:
+                    logging.error("The CSV file is empty or contains no valid records.")
+                    raise ValueError("The CSV file is empty or contains no valid records.")
+                # Infer parameter types
+                parameters = []
+                for col in column_names:
+                    value = found_complete_row[col]
+                    if isinstance(value, (int, float)):
+                        column_type = "number"
+                    elif isinstance(value, str):
+                        column_type = "string"
+                    else:
+                        column_type = "string"
+                    parameters.append({"name": col, "type": column_type})
+
+            records_data = chunk.to_dict(orient="records")
+            records = [
+                {
+                    "repository": ObjectId(repository['_id']),
+                    "data": record,
+                    "created_at": now,
+                    "updated_at": now,
+                    "version": 0
+                }
+                for record in records_data
+            ]
+            if records:
+                await db["records"].insert_many(records)
+                total_inserted += len(records)
+
+        # Update repository info
+        repository_data = {
+            "data_ready": True,
+            "valid": True,
+            "file_size": file_size,
+            "type": "text/csv",
+            "original_data_size": total_inserted,
+            "current_data_size": total_inserted,
+            "data_updated_at": datetime.now(),
+            "parameters": parameters,
+        }
+        await db["repositories"].update_one({"_id": ObjectId(repository['_id'])}, {"$set": repository_data})
+        logging.info(f"Inserted total {total_inserted} records for repository {repository['_id']}")
+
+        # Optionally delete the file after processing
+        if file_path and os.path.exists(file_path):
+            try:
+                os.remove(file_path)
+                logging.info(f"Deleted file at {file_path}")
+            except Exception as e:
+                logging.error(f"Error deleting file at {file_path}: {e}")
+
+        await recreate_records_indexes_from_repositories()
+
+    except Exception as e:
+        logging.error(f"Error storing records for repository {repository['_id']}: {e}", exc_info=True)
+        raise ValueError(f"Error storing records for repository {repository['_id']}: {e}")

@@ -1,7 +1,7 @@
 import asyncio
 from app.logging_config import *
 from app.database import recreate_records_indexes_from_repositories, db
-from app.utils.records_utils import delete_repository_related_data, process_file
+from app.utils.records_utils import delete_repository_related_data, store_repository_records
 from app.utils.validation_utils import init_validation
 from app.utils.user_initiated_processing_utils import start_user_initiated_process
 from app.utils.cron_initiated_processing_utils import prepare_cron_initiated_processes
@@ -15,7 +15,7 @@ WORKER_SECONDS_TIME =  int(os.getenv("WORKER_SECONDS_TIME", "10"))
 JOB_DISPATCH = {
     "start_process": start_user_initiated_process,
     "delete_repository": delete_repository_related_data,
-    "process_file": process_file,
+    "store_repository_records": store_repository_records,
     "reset_indexes": recreate_records_indexes_from_repositories,
     "validate_processes": init_validation,
     "prepare_cron_processes": prepare_cron_initiated_processes,
