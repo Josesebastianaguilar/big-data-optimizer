@@ -22,7 +22,12 @@ async def get_records(repository_id: str, request: Request, current_user: dict =
             raise HTTPException(status_code=404, detail=f"Repository {repository_id} not found")
         parameters = get_query_params(request)
         parameters["query_params"]["repository"] = ObjectId(repository_id)
-        totalItems = await db["records"].count_documents(parameters["query_params"]) if parameters["query_params"]["_id"] else repository["current_data_size"]
+        print('parameters["query_params"]', parameters["query_params"])
+        totalItems = 0
+        if "_id" in parameters["query_params"]:
+            totalItems = await db["records"].count_documents(parameters["query_params"])
+        else:
+            totalItems = repository["current_data_size"]
         page = parameters["page"]
         totalPages = totalItems // parameters["limit"] + (1 if totalItems % parameters["limit"] > 0 else 0)
         
