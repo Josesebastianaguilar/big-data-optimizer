@@ -170,7 +170,7 @@ export default function RepositoriesPage() {
                     >
                       <FaEdit className="w-4 h-4 text-green-500 hover:text-green-600" />
                     </Link>}
-                    {token && role === 'admin' && repo.data_ready && <button
+                    {token && role === 'admin' && <button
                       title="Delete Repository"
                       onClick={() => handleDeleteClick(repo)}
                       className="inline-block"
