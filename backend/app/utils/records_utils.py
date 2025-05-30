@@ -141,10 +141,15 @@ async def store_repository_records(repository: Repository, delete_existing_recor
             result = chardet.detect(rawdata)
             return result['encoding'] or 'utf-8'
         
+        bad_lines = 0    
+        def bad_line_handler(bad_line):
+            bad_lines += 1
+            return None
+        
         encoding = detect_encoding(file_path)
         logging.info(f"Detected encoding: {encoding}")
         
-        for i, chunk in enumerate(pd.read_csv(file_stream, chunksize=batch_size, encoding=encoding)):
+        for i, chunk in enumerate(pd.read_csv(file_stream, chunksize=batch_size, encoding=encoding, on_bad_lines=bad_line_handler)):
             chunk = chunk.where(pd.notnull(chunk), None)
             if i == 0:
                 # Infer columns and types from the first non-empty chunk
@@ -185,7 +190,9 @@ async def store_repository_records(repository: Repository, delete_existing_recor
             if records:
                 await db["records"].insert_many(records)
                 total_inserted += len(records)
-
+        
+        if bad_lines > 0:
+            logging.warning(f"Total bad lines encountered: {bad_lines}. Skipped those records.")
         # Update repository info
         repository_data = {
             "data_ready": True,
