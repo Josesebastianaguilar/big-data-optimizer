@@ -12,7 +12,7 @@ from datetime import datetime
 router = APIRouter()
 
 @router.get("/{repository_id}")
-async def get_records(repository_id: str, request: Request, current_user: dict = Depends(get_current_user)) -> dict:
+async def get_records(repository_id: str, request: Request) -> dict:
     """
     Get records for a specific repository.
     """
