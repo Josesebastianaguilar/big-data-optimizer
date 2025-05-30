@@ -17,9 +17,12 @@ async def get_records(repository_id: str, request: Request, current_user: dict =
     Get records for a specific repository.
     """
     try:
+        repository = await db["repositories"].find_one({"_id": ObjectId(repository_id)}, {"current_data_size": 1})
+        if not repository:
+            raise HTTPException(status_code=404, detail=f"Repository {repository_id} not found")
         parameters = get_query_params(request)
         parameters["query_params"]["repository"] = ObjectId(repository_id)
-        totalItems = await db["records"].count_documents(parameters["query_params"])
+        totalItems = await db["records"].count_documents(parameters["query_params"]) if parameters["query_params"]["_id"] else repository["current_data_size"]
         page = parameters["page"]
         totalPages = totalItems // parameters["limit"] + (1 if totalItems % parameters["limit"] > 0 else 0)
         
