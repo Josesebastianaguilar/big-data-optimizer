@@ -12,6 +12,7 @@ from app.database import recreate_records_indexes_from_repositories
 import pandas as pd
 import logging
 import os
+import chardet
 
 load_dotenv()
 UPLOAD_DIR = os.getenv("UPLOAD_DIR", "uploads")
@@ -133,7 +134,17 @@ async def store_repository_records(repository: Repository, delete_existing_recor
         # Read in chunks
         logging.info(f"Processing file: {UPLOAD_DIR}/{repository['file_path']}")
         logging.info(f"Reading CSV file in chunks of {batch_size} rows")
-        for i, chunk in enumerate(pd.read_csv(file_stream, chunksize=batch_size)):
+        
+        def detect_encoding(file_path, sample_size=10000):
+            with open(file_path, 'rb') as f:
+                rawdata = f.read(sample_size)
+            result = chardet.detect(rawdata)
+            return result['encoding'] or 'utf-8'
+        
+        encoding = detect_encoding(file_path)
+        logging.info(f"Detected encoding: {encoding}")
+        
+        for i, chunk in enumerate(pd.read_csv(file_stream, chunksize=batch_size, encoding=encoding)):
             chunk = chunk.where(pd.notnull(chunk), None)
             if i == 0:
                 # Infer columns and types from the first non-empty chunk

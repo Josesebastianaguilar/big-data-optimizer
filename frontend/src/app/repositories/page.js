@@ -163,7 +163,7 @@ export default function RepositoriesPage() {
                     >
                       <FaSearch className="w-4 h-4 text-stone-700 hover:text-stone-800" />
                     </Link>
-                    {token && role === 'admin' && repo.data_ready && <Link
+                    {token && role === 'admin' && <Link
                       title="Edit Repository"
                       href={`/repositories/edit/${repo._id.$oid}`}
                       className="inline-block"
