@@ -94,7 +94,7 @@ async def process_data(repository_id: str, request: Request, current_user: dict 
         processes_optimized.append({**base_aggregation_process, "optimized": True})
     try:    
         await db["processes"].insert_many(processes_non_optimized + processes_optimized)
-        await db["jobs"].insert_one({"type": "start_process", "data": {"process_id": str(process_id), "repository_id": str(repository_id), "actions": all_processes, "iteration": 1}})
+        await db["jobs"].insert_one({"type": "start_process", "data": {"process_id": str(process_id), "repository_id": str(repository_id), "actions": all_processes, "iteration": 1, "trigger_type": "user"}})
         
         return Response(status_code=200, content=json_util.dumps({"process_id": str(process_id), "iteration": 1, "message": "Process started successfully"}), media_type="application/json")
     except Exception as e:
@@ -150,7 +150,7 @@ async def iterate_process(process_id: str, current_user: dict = Depends(get_curr
             })
         
         await db["processes"].insert_many(new_iteration_processes)
-        await db["jobs"].insert_one({"type": "start_process", "data": {"process_id": str(process_id), "repository_id": str(repository["_id"]), "actions": actions, "iteration": current_iteration + 1}})
+        await db["jobs"].insert_one({"type": "start_process", "data": {"process_id": str(process_id), "repository_id": str(repository["_id"]), "actions": actions, "iteration": current_iteration + 1, "trigger_type": "user"}})
         
         return Response(status_code=200, content=json_util.dumps({"process_id": process_id, "iteration": current_iteration + 1, "message": "Process iteration started successfully"}), media_type="application/json")
     except Exception as e:

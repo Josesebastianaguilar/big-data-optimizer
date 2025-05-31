@@ -3,8 +3,7 @@ from app.logging_config import *
 from app.database import recreate_records_indexes_from_repositories, db
 from app.utils.records_utils import delete_repository_related_data, store_repository_records, change_parameters_type
 from app.utils.validation_utils import init_validation
-from app.utils.user_initiated_processing_utils import start_user_initiated_process
-from app.utils.cron_initiated_processing_utils import prepare_cron_initiated_processes
+from app.utils.processing_utils import start_process, prepare_cron_initiated_processes
 from dotenv import load_dotenv
 import os
 
@@ -13,7 +12,7 @@ WORKER_SECONDS_TIME =  int(os.getenv("WORKER_SECONDS_TIME", "10"))
 
 # Map job type to the actual async function
 JOB_DISPATCH = {
-    "start_process": start_user_initiated_process,
+    "start_process": start_process,
     "delete_repository": delete_repository_related_data,
     "store_repository_records": store_repository_records,
     "reset_indexes": recreate_records_indexes_from_repositories,

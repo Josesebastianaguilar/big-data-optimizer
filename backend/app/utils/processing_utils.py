@@ -1,28 +1,25 @@
-from fastapi import HTTPException, Response
 from bson.objectid import ObjectId
-from app.models.process import Process
 from typing import List, Any
 from app.database import db
 from app.utils.monitor_resources_utils import monitor_resources, get_metrics, dequeue_measurements, get_process_times
 from queue import Queue
 from threading import Lock
-from app.utils import non_optimized_processing_utils as non_opt_utils
-from  app.utils import optimized_processing_utils as opt_utils
 from app.utils.general_utils import group_results_to_objects, convert_numpy_types
-from bson import json_util
 from datetime import datetime
 from dotenv import load_dotenv
+from app.utils import non_optimized_processing_utils as non_opt_utils
+from app.utils import optimized_processing_utils as opt_utils
+from collections import defaultdict
 import multiprocessing as mp
 import pandas as pd
-import time
 import threading
 import asyncio
 import logging
 import os
 
 load_dotenv()
-PROCESSES_RECORDS_BATCH_SIZE = int(os.getenv("PROCESSES_RECORDS_BATCH_SIZE", "15000"))  # Default to 5000 records per batch
-PROCESS_RESULTS_BATCH_SIZE = int(os.getenv("PROCESS_RESULTS_BATCH_SIZE", "500"))  # Default to 1000 results per batch
+PROCESSES_RECORDS_BATCH_SIZE = int(os.getenv("PROCESSES_RECORDS_BATCH_SIZE", "15000"))
+PROCESS_RESULTS_BATCH_SIZE = int(os.getenv("PROCESS_RESULTS_BATCH_SIZE", "500"))
 
 
 async def store_success(process_id, input_data_size, output_data_size, metrics, time_metrics):
@@ -210,8 +207,55 @@ async def process_data(df: pd.DataFrame, processes, utils, num_processes, action
     await apply_groupping(df, processes, utils, batch_number, trigger_type, iteration)
   elif "aggregation" in actions:
     await apply_aggregation(df, processes, utils, batch_number, trigger_type, iteration)
-
-async def start_user_initiated_process(process_id: str, repository_id: str, actions, iteration: int = 1):
+    
+async def start_metrics_results_gathering(process_id: str, processes: List[Any], repository: Any, actions, trigger_type: str, total_batches):
+  """
+  Gather metrics and results for a given process.
+  """
+  logging.info(f"Starting results gathering for process_id {process_id}")
+  for process in processes:
+    current_process = await db["processes"].find_one({"_id": ObjectId(process["_id"]), "status": "in_progress"})
+    if current_process:
+      process_input_data_size = 0
+      process_output_data_size = 0
+      process_time_metrics = {}
+      process_metrics = []
+      
+      if current_process["task_process"] == "filter" or "filter" not in actions:
+        process_input_data_size = repository["current_data_size"]
+      
+      if current_process["task_process"] != "filter" and "filter" in actions:
+        input_filter_data_size_list = await db["process_results"].aggregate([
+          {"$match": {"type": "filter", "trigger_type": trigger_type, "iteration": current_process["iteration"], "optimized": current_process["optimized"], "process_id": ObjectId(current_process["process_id"]) }},
+          {"$group": {"_id": None, "output_data_size": {"$sum": "$output_data_size"}}}
+        ]).to_list(length=None)
+        
+        process_input_data_size = input_filter_data_size_list[0]["output_data_size"] if input_filter_data_size_list else 0
+      
+      first_process_batch = await db["process_results"].find_one({"process_item_id": ObjectId(process["_id"]), "batch_number": 1}, {"metrics": 1})
+      last_process_batch = await db["process_results"].find_one({"process_item_id": ObjectId(process["_id"]), "batch_number": total_batches}, {"metrics": 1})
+      
+      if first_process_batch != None and last_process_batch != None:
+        process_time_metrics = get_process_times(first_process_batch["metrics"] + last_process_batch["metrics"])
+        
+      for i in range(0, total_batches, PROCESS_RESULTS_BATCH_SIZE):
+        batch_results = await db["process_results"].find({"process_item_id": ObjectId(process["_id"])}, {"metrics": 1, "results": 1, "output_data_size": 1}).sort("batch_number", 1).skip(i).limit(PROCESS_RESULTS_BATCH_SIZE).to_list(length=None)
+        process_metrics.extend([item for result in batch_results if result["metrics"] is not None for item in result["metrics"]])
+        if current_process["task_process"] != "aggregation":
+          process_output_data_size += sum(result["output_data_size"] for result in batch_results if result["output_data_size"] is not None)
+          
+      process_metrics.sort(key=lambda x: x["timestamp"] if isinstance(x, dict) and "timestamp" in x else 0)
+      
+      if current_process["task_process"] == "aggregation":
+        process_output_data_size = None
+      
+      await store_success(process["_id"], process_input_data_size, process_output_data_size, process_metrics, process_time_metrics)
+      logging.info(f"Process {process['_id']} completed successfully")
+    else:
+      logging.warning(f"Process {process['_id']} is not in progress, skipping results gathering")
+  logging.info(f"All processes for process_id {process_id} completed successfully")
+  
+async def start_process(process_id: str, repository_id: str, actions, iteration: int = 1, trigger_type: str = "user"):
     """
     Process data for a given collection and queries.
     """
@@ -223,7 +267,7 @@ async def start_user_initiated_process(process_id: str, repository_id: str, acti
       total_batches = total_records // PROCESSES_RECORDS_BATCH_SIZE + (1 if total_records % PROCESSES_RECORDS_BATCH_SIZE > 0 else 0)
       logging.info(f"Batch size: {PROCESSES_RECORDS_BATCH_SIZE}")
       logging.info(f"Total batches per process: {total_batches}")
-      processes = await db["processes"].find({"process_id": ObjectId(process_id), "repository": ObjectId(repository_id), "trigger_type": "user", "iteration": iteration, "status": "in_progress"}).to_list(length=None)
+      processes = await db["processes"].find({"process_id": ObjectId(process_id), "repository": ObjectId(repository_id), "trigger_type": trigger_type, "iteration": iteration, "status": "in_progress"}).to_list(length=None)
       optimized_processes = [process for process in processes if process["optimized"] is True]
       non_optimized_processes = [process for process in processes if process["optimized"] is False]
       total_num_processes = mp.cpu_count()
@@ -233,54 +277,82 @@ async def start_user_initiated_process(process_id: str, repository_id: str, acti
         batch = await db["records"].find({"repository": ObjectId(repository_id)}).sort("_id", 1).skip(i).limit(PROCESSES_RECORDS_BATCH_SIZE).to_list(length=None)
         df = pd.DataFrame([{"_id": record["_id"], **record["data"]} for record in batch])
         await asyncio.gather(
-            process_data(df, non_optimized_processes, non_opt_utils, None, actions, False, batch_number, "user", iteration),
-            process_data(df, optimized_processes, opt_utils, max(total_num_processes - 3, 1), actions, True, batch_number, "user", iteration)
+            process_data(df, non_optimized_processes, non_opt_utils, None, actions, False, batch_number, trigger_type, iteration),
+            process_data(df, optimized_processes, opt_utils, max(total_num_processes - 3, 1), actions, True, batch_number, trigger_type, iteration)
         )
       
-      logging.info(f"Starting results gathering for process_id {process_id}")
-      for process in processes:
-        current_process = await db["processes"].find_one({"_id": ObjectId(process["_id"]), "status": "in_progress"})
-        if current_process:
-          process_input_data_size = 0
-          process_output_data_size = 0
-          process_time_metrics = {}
-          process_metrics = []
-          
-          if current_process["task_process"] == "filter" or "filter" not in actions:
-            process_input_data_size = repository["current_data_size"]
-          
-          if current_process["task_process"] != "filter" and "filter" in actions:
-            input_filter_data_size_list = await db["process_results"].aggregate([
-              {"$match": {"type": "filter", "trigger_type": "user", "iteration": iteration, "optimized": current_process["optimized"], "process_id": ObjectId(current_process["process_id"]) }},
-              {"$group": {"_id": None, "output_data_size": {"$sum": "$output_data_size"}}}
-            ]).to_list(length=None)
-            
-            process_input_data_size = input_filter_data_size_list[0]["output_data_size"] if input_filter_data_size_list else 0
-          
-          first_process_batch = await db["process_results"].find_one({"process_item_id": ObjectId(process["_id"]), "batch_number": 1}, {"metrics": 1})
-          last_process_batch = await db["process_results"].find_one({"process_item_id": ObjectId(process["_id"]), "batch_number": total_batches}, {"metrics": 1})
-          
-          if first_process_batch != None and last_process_batch != None:
-            process_time_metrics = get_process_times(first_process_batch["metrics"] + last_process_batch["metrics"])
-            
-          for i in range(0, total_records, PROCESS_RESULTS_BATCH_SIZE):
-            batch_results = await db["process_results"].find({"process_item_id": ObjectId(process["_id"])}, {"metrics": 1, "results": 1, "output_data_size": 1}).sort("batch_number", 1).skip(i).limit(PROCESS_RESULTS_BATCH_SIZE).to_list(length=None)
-            process_metrics.extend([item for result in batch_results if result["metrics"] is not None for item in result["metrics"]])
-            if current_process["task_process"] != "aggregation":
-              process_output_data_size += sum(result["output_data_size"] for result in batch_results if result["output_data_size"] is not None)
-              
-          process_metrics.sort(key=lambda x: x["timestamp"] if isinstance(x, dict) and "timestamp" in x else 0)
-          
-          if current_process["task_process"] == "aggregation":
-            process_output_data_size = None
-          
-          await store_success(process["_id"], process_input_data_size, process_output_data_size, process_metrics, process_time_metrics)
-          logging.info(f"Process {process['_id']} completed successfully")
-        else:
-          logging.warning(f"Process {process['_id']} is not in progress, skipping results gathering")
-      logging.info(f"All processes for process_id {process_id} completed successfully")
+      await start_metrics_results_gathering(process_id, processes, repository, actions, trigger_type, total_batches)
     except Exception as e:
       logging.error(f"Error processing data for process_id {process_id}: {e}")
       raise e
 
-    
+async def prepare_cron_initiated_processes():
+    """
+    Process data for a given collection and queries.
+    """
+    try:
+      logging.info("Starting cron initiated process.")
+      existing_executing_processes = await db["processes"].find({"status": "in_progress"}, {"results": 0, "metrics": 0, "errors": 0}).to_list(length=None)
+        
+      if len(existing_executing_processes) > 0:
+          logging.info(f"There are executing processes. The system will try again at the next cron interval.")
+          return
+      repositories = await db["repositories"].find({"data_ready": True}).to_list(length=None)
+      if len(repositories) == 0:
+        logging.info("No repositories found with data ready. Skipping cron initiated process.")
+        return
+      
+      for repository in repositories:
+        processes = await db["processes"].find({"repository": repository["_id"], "iteration": 1, "repository_version": repository["version"], "trigger_type": "user"}, {"metrics": 0}).to_list(length=None)
+        
+        if len(processes) == 0:
+          logging.info(f"Repository {repository['_id']} has no user initiated processes. Skipping.")
+          continue
+        
+        grouped_processes = defaultdict(list)
+        for user_initiated_process in processes:
+            grouped_processes[user_initiated_process["process_id"]].append(user_initiated_process)
+        
+        valid_process_ids = []
+        for process_id, process_group in grouped_processes.items():
+          existing_cron_processes = await db["processes"].find({"repository": repository["_id"], "process_id": process_id, "trigger_type": "system"}).to_list(length=None)
+          if len(existing_cron_processes) == 0:
+            valid_process_ids.append(str(process_id))
+        
+        for i in range(10):
+          logging.info(f"Iteration {i + 1} for repository {repository['_id']}")
+          for process_id, process_group in grouped_processes.items():
+            if str(process_id) not in valid_process_ids:
+              logging.info(f"Process {process_id} already has cron initiated processes for repository {repository['_id']}. Skipping.")
+              continue
+            cron_processes = []
+            all_actions = []
+            for process in process_group:
+              if all_actions == []:
+                all_actions = process["actions"]
+              cron_processes.append({
+                "parameters": process["parameters"],
+                "actions": process["actions"],
+                "task_process": process["task_process"],
+                "status": "in_progress",
+                "repository": repository["_id"],
+                "process_id": process_id,
+                "trigger_type": "system",
+                "created_at": datetime.now(),
+                "updated_at": datetime.now(),
+                "optimized": process["optimized"],
+                "iteration": i + 1,
+                "validated": False
+              })
+            await db["processes"].insert_many(cron_processes)
+            logging.info(f"Inserted {len(cron_processes)} cron processes for repository {repository['_id']} and process_id {process_id} at iteration {i + 1}. Starting processing.")
+            try:
+              await start_process(str(process_id), str(repository["_id"]), all_actions, i + 1, "system")
+              logging.info(f"Started cron initiated process for repository {repository['_id']} and process_id {process_id} at iteration {i + 1}.")
+            except Exception as e:
+              logging.error(f"Error in cron initiated process: {e} for repository {repository['_id']} and process_id {process_id} at iteration {i + 1}")
+              continue
+      logging.info("Cron initiated processes completed successfully.")      
+    except Exception as e:
+      logging.error(f"Error in cron initiated process: {e}")
+      return

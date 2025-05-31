@@ -159,14 +159,6 @@ export default function ProcessesListPage() {
     }));
   };
 
-  const formatDuration = (seconds) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) % 60);
-    const s = Math.floor(seconds % 60);
-    const ms = Math.floor((seconds - Math.floor(seconds)) * 1000);
-    return `${h}h ${m}m ${s}s ${ms}ms`;
-  };
-
   const matchVersions = (process_id) => {
     const processes_id = processes.filter(proc => proc.process_id.$oid === process_id);
     
@@ -293,8 +285,6 @@ export default function ProcessesListPage() {
                                         <th className="px-2 py-2 text-xs min-w-auto">Errors</th>
                                         <th className="px-2 py-2 text-xs min-w-auto">Validated</th>
                                         <th className="px-2 py-2 text-xs min-w-auto">Valid</th>
-                                        <th className="px-2 py-2 text-xs min-w-auto">Created At</th>
-                                        <th className="px-2 py-2 text-xs min-w-auto">Updated At</th>
                                         <th className="px-2 py-2 text-xs min-w-auto">Iteration</th>
                                         <th className="px-2 py-2 text-xs min-w-auto">Repo Version</th>
                                         <th className="px-2 py-2 text-xs min-w-auto">Actions</th>
@@ -310,7 +300,7 @@ export default function ProcessesListPage() {
                                             ))}
                                           </td>
                                           <td className="text-center px-2 py-2 text-sm">{proc.status}</td>
-                                          <td className="text-center px-2 py-2 text-sm">{proc.duration ? formatDuration(proc.duration) : '-'}</td>
+                                          <td className="text-center px-2 py-2 text-sm">{proc.status === 'completed' || proc.status === 'failed' ? (proc.duration + ' ms') : '-'}</td>
                                           <td className="text-center px-2 py-2 text-sm">{proc.input_data_size}</td>
                                           <td className="text-center px-2 py-2 text-sm">
                                             {proc.task_process === 'filter' && <span>{proc.output_data_size || '-'}</span>}
@@ -328,8 +318,6 @@ export default function ProcessesListPage() {
                                           </td>
                                           <td className="text-center align-center px-2 py-2 text-sm">{proc.validated ? <FaCheckCircle className="text-center text-green-800"/> : <FaWindowClose className="text-center rounded-full  text-red-600"/>}</td>
                                           <td className="text-center px-2 py-2 text-sm">{proc.valid ? <FaCheckCircle className="text-center text-green-800"/> : <FaWindowClose className="text-center rounded-full text-red-600"/>}</td>
-                                          <td className="text-center px-2 py-2 text-sm">{new Date(proc.created_at.$date).toString()}</td>
-                                          <td className="text-center px-2 py-2 text-sm">{new Date(proc.updated_at.$date).toString()}</td>
                                           <td className="text-center px-2 py-2 text-sm">{proc.iteration}</td>
                                           <td className="text-center px-2 py-2 text-sm">{proc.repository_version}</td>
                                           <td className="text-center px-2 py-2 text-sm space-x-1">
