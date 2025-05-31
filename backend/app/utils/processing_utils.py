@@ -9,6 +9,7 @@ from datetime import datetime
 from dotenv import load_dotenv
 from app.utils import non_optimized_processing_utils as non_opt_utils
 from app.utils import optimized_processing_utils as opt_utils
+from app.utils.records_utils import delete_collection_in_batches
 from collections import defaultdict
 import multiprocessing as mp
 import pandas as pd
@@ -78,7 +79,7 @@ async def apply_filter(df: pd.DataFrame, processes, utils, num_processes: int, b
   filter_metrics = Queue()
   filter_lock = Lock()
   stop_event = threading.Event()
-  monitor_thread = threading.Thread(target=monitor_resources, args=(0.025, stop_event, filter_metrics, filter_lock))
+  monitor_thread = threading.Thread(target=monitor_resources, args=(0.01, stop_event, filter_metrics, filter_lock))
   monitor_thread.start()
   
   try:
@@ -117,7 +118,7 @@ async def apply_groupping(df: pd.DataFrame, processes, utils, batch_number: int,
   group_metrics = Queue()
   group_lock = Lock()
   stop_event = threading.Event()
-  monitor_thread = threading.Thread(target=monitor_resources, args=(0.025, stop_event, group_metrics, group_lock))
+  monitor_thread = threading.Thread(target=monitor_resources, args=(0.01, stop_event, group_metrics, group_lock))
   monitor_thread.start()
   try:
     group_results = utils.group_data(df, group_process_item["parameters"])
@@ -153,7 +154,7 @@ async def apply_aggregation(df: pd.DataFrame, processes, utils, batch_number: in
   aggregation_metrics = Queue()
   aggregation_lock = Lock()
   stop_event = threading.Event()
-  monitor_thread = threading.Thread(target=monitor_resources, args=(0.025, stop_event, aggregation_metrics, aggregation_lock))
+  monitor_thread = threading.Thread(target=monitor_resources, args=(0.01, stop_event, aggregation_metrics, aggregation_lock))
   monitor_thread.start()
   try:
     aggregation_results = utils.aggregate_data(df, aggregation_process_item["parameters"])
@@ -356,3 +357,28 @@ async def prepare_cron_initiated_processes():
     except Exception as e:
       logging.error(f"Error in cron initiated process: {e}")
       return
+    
+
+async def reset_processes(repository_id: str):
+    """
+    Reset all processes for a given repository.
+    """
+    try:
+      processes_query = {"repository": ObjectId(repository_id)}
+      processes = await db["processes"].find(processes_query, {"_id": 1}).to_list(length=None)
+      
+      processes_ids = [ObjectId(process["_id"]) for process in processes]
+      processes_results_query = {"process_item_id": {"$in": processes_ids}}
+      
+      logging.info(f"Resetting processes for repository {repository_id}")
+      await delete_collection_in_batches(db["processes"], processes_query)
+      logging.info(f"Deleted {len(processes)} processes for repository {repository_id}")
+      logging.info(f"Deleting process results for repository {repository_id}")
+      await delete_collection_in_batches(db["process_results"], processes_results_query)
+      logging.info(f"Deleted process results for repository {repository_id}")
+      
+      logging.info(f"Processes for repository {repository_id} reset successfully.")
+    except Exception as e:
+      logging.error(f"Error resetting processes for repository {repository_id}: {e}")
+      raise e        
+

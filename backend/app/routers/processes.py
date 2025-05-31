@@ -169,3 +169,20 @@ async def validate_processes_endpoint(request: Request, current_user: dict = Dep
     except Exception as e:
         logging.error(f"Error validating processes: {str(e)}")
         raise HTTPException(status_code=500, detail=f"Error validating processes: {e}")
+
+@router.delete("/{repository_id}")
+async def reset_processes(repository_id: str, current_user: dict = Depends(get_current_user)) -> dict:
+    print('current_user', current_user)
+    """
+    Reset processes for a specific repository.
+    """
+    if current_user["role"] != "admin":
+        raise HTTPException(status_code=403, detail="You do not have permission to reset processes")
+    
+    try:
+        await db["jobs"].insert_one({"type": "reset_processes", "data": {"repository_id": repository_id}})
+        
+        return Response(status_code=200, content=json_util.dumps({"message": "Processes reset successfully"}), media_type="application/json")
+    except Exception as e:
+        logging.error(f"Error resetting processes for repository {repository_id}: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Error resetting processes: {e}")

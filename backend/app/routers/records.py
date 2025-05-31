@@ -20,6 +20,7 @@ async def get_records(repository_id: str, request: Request) -> dict:
         repository = await db["repositories"].find_one({"_id": ObjectId(repository_id)}, {"current_data_size": 1})
         if not repository:
             raise HTTPException(status_code=404, detail=f"Repository {repository_id} not found")
+        
         parameters = get_query_params(request)
         parameters["query_params"]["repository"] = ObjectId(repository_id)
         print('parameters["query_params"]', parameters["query_params"])
@@ -44,6 +45,9 @@ async def update_record(record_id: str, request: Request, current_user: dict = D
     Update a record in the database.
     """
     try:
+        if current_user["role"] != "admin":
+            raise HTTPException(status_code=403, detail="You do not have permission to update records")
+        
         record = await request.json()
         current_record = await db["records"].find_one({"_id": ObjectId(record_id)})
         
@@ -71,6 +75,9 @@ async def create_record(repository_id: str, request: Request, current_user: dict
     Create a new record in the database.
     """
     try:
+        if current_user["role"] != "admin":
+            raise HTTPException(status_code=403, detail="You do not have permission to update records")
+        
         record = await request.json()
 
         repository = await db["repositories"].find_one({"_id": ObjectId(repository_id)})
@@ -92,6 +99,9 @@ async def delete_record(record_id: str, current_user: dict = Depends(get_current
     Delete a record from the database.
     """
     try:
+        if current_user["role"] != "admin":
+            raise HTTPException(status_code=403, detail="You do not have permission to update records")
+        
         record = await db["records"].find_one({"_id": ObjectId(record_id)})
         
         if not record:

@@ -5,8 +5,9 @@ import Header from "@/components/Header";
 import Footer from "@/components/Footer";
 import Paginator from "@/components/Paginator";
 import PageSize from "@/components/PageSize";
+import ConfirmationModal from "@/components/ConfirmationModal";
 import { useSearchParams, useRouter } from "next/navigation";
-import { FaChevronDown, FaChevronRight, FaSearch, FaCheckCircle, FaWindowClose, FaRedo, FaArrowLeft, FaPlus, FaProjectDiagram, FaArchive } from "react-icons/fa"; 
+import { FaChevronDown, FaChevronRight, FaSearch, FaCheckCircle, FaWindowClose, FaRedo, FaArrowLeft, FaPlus, FaProjectDiagram, FaArchive, FaTrash } from "react-icons/fa"; 
 import { useAuth } from "@/context/AuthContext";
 import api from "@/app/api";
 import Link from "next/link";
@@ -15,6 +16,7 @@ import { useSnackbar } from "@/components/SnackbarContext";
 export default function ProcessesListPage() {
   const { showSnackbar } = useSnackbar();
   const { token, role, authLoading } = useAuth();
+  const [showModal, setShowModal] = useState(false);
   const [performance_types] = useState(['optimized', 'non_optimized']);
   const [triggers] = useState(['user', 'system']);
   const [groupedProcesses, setGroupedProcesses] = useState(null);
@@ -29,6 +31,10 @@ export default function ProcessesListPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [validated, setValidated] = useState(false);
+
+  const cancelDelete = () => {
+    setShowModal(false);
+  };
 
   const groupProcesses = (processes) => {
     const grouped = { user: {}, system: {} };
@@ -45,6 +51,21 @@ export default function ProcessesListPage() {
     });
     return grouped;
   }
+
+  const confirmReset = async () => {
+    try {
+      await api.delete(`/processes/${repository?._id?.$oid}`);
+      setGroupedProcesses(null);
+      setProcesses([]);
+      setShowModal(false);
+      showSnackbar(`Deletion of processes for repository ${repository?.name} has been started successfully`, "success", true, "bottom-right");
+      showSnackbar("The system will take some time to delete all processes.", "info", false, "bottom-right");
+      router.push("/repositories")
+    } catch (error) {
+      showSnackbar(`Error deleting processes for repository ${repository?.name}`, "error", false, "bottom-right");
+      console.error(`Error deleting process of repository ${repository?.name}:`, error);
+    }
+  };
 
   const fetchRepository = async () => {
     try {
@@ -212,6 +233,12 @@ export default function ProcessesListPage() {
                 <FaCheckCircle className="inline mr-2 white text-white-500 mr-2" />
                 Validate Processes
               </button>
+              {role && role === 'admin' && <button
+                onClick={() => setShowModal(true)}
+                className="ml-2 inline cursor-pointer bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
+              >
+                <FaTrash className="cursor-pointer w-4 h-4" title="Reset repository processes"/>
+              </button>}
             </div>}
             {processes?.length > 0 && <div className="flex justify-end my-2">
               <PageSize page={page} value={limit} onChange={fetchProcesses}/>
@@ -357,6 +384,14 @@ export default function ProcessesListPage() {
             </div>}
           </div>
         </div>
+        {/* Confirmation Modal */}
+        <ConfirmationModal
+          isOpen={showModal}
+          title={`Confirm processes reset for repository ${repository?.name}`}
+          message={`Are you sure you want to delete all ${totalItems} processes from repository ${repository?.name}? This can not be undone`}
+          onConfirm={confirmReset}
+          onCancel={cancelDelete}
+        />
       </main>
       <Footer backgroundColor="bg-orange-500"/>
     </div>
