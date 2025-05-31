@@ -36,7 +36,18 @@ async def create_indexes():
         await db["jobs"].create_index("_id")
         await db["jobs"].create_index("type")
         await db["jobs"].create_index("data")
+        await db["process_results"].create_index("_id")
+        await db["process_results"].create_index("batch_number")
+        await db["process_results"].create_index("process_id")
+        await db["process_results"].create_index("process_item_id")
+        await db["process_results"].create_index("metrics")
+        await db["process_results"].create_index("results")
+        await db["process_results"].create_index("errors")
+        await db["process_results"].create_index("created_at")
+        await db["process_results"].create_index("updated_at")
         logging.info("Indexes created successfully.")
+        
+        await db["jobs"].insert_one({"type": "reset_indexes", "data": {}})
     except Exception as e:
         logging.error(f"Error creating indexes: {str(e)}")
         raise e
@@ -69,3 +80,4 @@ async def recreate_records_indexes_from_repositories():
         except Exception as e:
             logging.error(f"Error recreating indexes for records: {str(e)}")
             raise e
+        

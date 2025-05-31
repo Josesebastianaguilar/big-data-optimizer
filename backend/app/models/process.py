@@ -41,6 +41,8 @@ class Process(BaseModel):
   created_at: Optional[Any]
   updated_at: Optional[Any]
   iteration: Optional[int]
+  bach_size: Optional[int]
+  total_batches: Optional[int]
   repository_version: Optional[int]
   
   class Config:

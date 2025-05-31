@@ -34,13 +34,17 @@ export default function ProcessShowView() {
   const { id } = useParams();
   const [lineChartData, setLineChartData] = useState(null);
   const [doughnutData, setDoughnutData] = useState(null);
-  const formatTimestamp = (seconds) => {
-    const h = Math.floor(seconds / 3600);
-    const m = Math.floor((seconds % 3600) % 60);
-    const s = Math.floor(seconds % 60);
-    const ms = Math.floor((seconds - Math.floor(seconds)) * 1000);
-    return `${h && h > 24 ? h - 24 : h}h ${m}m ${s}s ${ms}ms`;
-  };
+  function formatIsoToHMSMs(isoString) {
+    if (!isoString) return "-";
+    const date = new Date(isoString);
+    const hours = String(date.getHours()).padStart(2, "0");
+    const minutes = String(date.getMinutes()).padStart(2, "0");
+    const seconds = String(date.getSeconds()).padStart(2, "0");
+    // Extract milliseconds from the ISO string (to preserve leading zeros)
+    const msMatch = isoString.match(/\.(\d{1,3})/);
+    const milliseconds = msMatch ? msMatch[1].padEnd(3, "0") : "000";
+    return `${hours}:${minutes}:${seconds}:${milliseconds}`;
+  }
 
   const fetchRepository = async () => {
       try {
@@ -71,7 +75,7 @@ export default function ProcessShowView() {
 
         const cpuArr = metrics.map(m => m.cpu);
         const memoryArr = metrics.map(m => m.memory);
-        const timestampsArr = metrics.map(m => formatTimestamp(m.timestamp));
+        const timestampsArr = metrics.map(m => formatIsoToHMSMs(m.timestamp));
 
         return {
           labels: timestampsArr,
@@ -240,16 +244,16 @@ export default function ProcessShowView() {
             <div><strong>Process ID:</strong> {process.process_id.$oid}</div>
             <div><strong>Optimized:</strong> {process.optimized ? <FaCheckCircle className="text-center text-green-800 inline"/> : <FaWindowClose className="text-center inline rounded-full  text-red-600"/>}</div>
             <div><strong>Trigger Type:</strong> {capitalize(process.trigger_type)}</div>
-            <div><strong>Start Time:</strong> {formatTimestamp(process.start_time)}</div>
-            <div><strong>End Time:</strong> {formatTimestamp(process.end_time)}</div>
-            <div><strong>Duration:</strong> {process.duration ? formatTimestamp(process.duration) : '-'}</div>
+            <div><strong>Start Time:</strong> {formatIsoToHMSMs(process.start_time)}</div>
+            <div><strong>End Time:</strong> {formatIsoToHMSMs(process.end_time)}</div>
+            <div><strong>Duration:</strong> {process.duration ? (process.duration + ' ms') : '0 ms'}</div>
             <div><strong>Input # of records:</strong> {process.input_data_size}</div>
             {process.task_process !== 'aggregation' && <div><strong>Output # number of records:</strong> {process.output_data_size}</div>}
             <div><strong>Errors:</strong> {process.errors ? process.errors : <span className="text-green-600">None</span>}</div>
             <div><strong>Validated:</strong> {process.valid ? <FaCheckCircle className="text-center text-green-800 inline"/> : <FaWindowClose className="text-center rounded-full inline text-red-600"/>}</div>
             <div><strong>Valid:</strong> {process.validated ? <FaCheckCircle className="text-center text-green-800 inline"/> : <FaWindowClose className="text-center rounded-full inline text-red-600"/>}</div>
-            <div><strong>Created At:</strong> {new Date(process.created_at.$date).toString()}</div>
-            <div><strong>Updated At:</strong> {new Date(process.updated_at.$date).toString()}</div>
+            <div><strong>Created At:</strong> {new Date(process.created_at.$date).toDateString()}</div>
+            <div><strong>Updated At:</strong> {new Date(process.updated_at.$date).toDateString()}</div>
             <div><strong>Iteration:</strong> {process.iteration}</div>
             <div><strong>Repository Version:</strong> {process.repository_version}</div>
             {process.task_process === 'group' && <div><strong>Parameters:</strong> {process.parameters.map(param => capitalize(param)).join(', ')}</div>}

@@ -35,6 +35,30 @@ def validate_repository_file(repository: dict):
 
         if mime_type != "text/csv":
             raise HTTPException(status_code=400, detail="Invalid file type. Only CSV files are allowed.")
+        
+async def get_changed_type_parameters(repository_id: str, parameters: List[dict]):
+    """Validate repository parameters."""
+    changed_parameters = []
+    if not parameters:
+        raise HTTPException(status_code=400, detail="Parameters are required.")
+    
+    current_repository = await db["repositories"].find_one({"_id": ObjectId(repository_id)}, {"parameters": 1})
+    
+    if not current_repository:
+        raise HTTPException(status_code=404, detail="Repository not found.")
+    
+    repository_parameters_names = [param["name"] for param in current_repository.get("parameters", []) if "name" in param]
+    changed_parameter_names = [param["name"] for param in parameters if "name" in param and param["name"] not in repository_parameters_names]
+    
+    if len(changed_parameter_names) > 0:
+        raise HTTPException(status_code=400, detail=f"Parameters {', '.join(changed_parameter_names)} are not present in the repository. Please check the parameters provided.")
+    
+    for parameter in parameters:
+        repository_parameter = next((param for param in current_repository["parameters"] if param["name"] == parameter["name"]), None)
+        if parameter["type"] != repository_parameter["type"]:
+            changed_parameters.append(parameter["name"])
+    
+    return changed_parameters
 
 async def upsert_repository(repository_id, name, description, url, large_file, file_path, file, parameters, current_user: dict, upsert_type: str) -> dict:
     """Upsert a repository."""
@@ -88,9 +112,10 @@ async def upsert_repository(repository_id, name, description, url, large_file, f
             repository["_id"] = repository_id
 
         try:
+            changed_parameters = await get_changed_type_parameters(repository_id, parameters)
             result = await db["repositories"].update_one({"_id": ObjectId(repository_id)}, {"$set": repository_data})
-            if "file" not in repository or repository["file"] is None:
-                await db["jobs"].insert_one({"type": "reset_indexes", "data": {}})
+            if len(changed_parameters) > 0:
+                await db["jobs"].insert_one({"type": "change_parameters_type", "data": {"repository_id": repository_id, "changed_parameters": changed_parameters}})
             
             if "file" in repository and repository["file"] is not None:
                 file_name = f"{repository['name'].replace(' ', '_')}_{datetime.now().timestamp()}.csv"

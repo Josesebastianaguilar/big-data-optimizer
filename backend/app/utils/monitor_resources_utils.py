@@ -1,6 +1,7 @@
 import psutil
-import time
 import logging
+import time
+from datetime import datetime
 from queue import Empty
 
 def get_process_times(measurements):
@@ -8,14 +9,19 @@ def get_process_times(measurements):
     if len(measurements) == 0:
         return {"start_time": None, "end_time": None, "duration": None}
     
+    # Convert ISO strings back to datetime objects
+    start_time = datetime.fromisoformat(measurements[0]["timestamp"])
+    end_time = datetime.fromisoformat(measurements[-1]["timestamp"])
+    duration = int((end_time - start_time).total_seconds() * 1000)
+
     return {
         "start_time": measurements[0]["timestamp"],
         "end_time": measurements[-1]["timestamp"],
-        "duration": measurements[-1]["timestamp"] - measurements[0]["timestamp"]
+        "duration": duration
     }
   except Exception as e:
-    logging.error(f"Error in get_process_times: {e}")
-    raise e
+      logging.error(f"Error in get_process_times: {e}")
+      raise e
 
 def dequeue_measurements(queue, lock):
   try:
@@ -35,7 +41,7 @@ def get_metrics(process):
   try:
     cpu_usage = min(process.cpu_percent(interval=None), 100)
     memory_usage = process.memory_info().rss / (1024 * 1024)# Convert to MB
-    timestamp = time.perf_counter()
+    timestamp = datetime.now().isoformat(timespec='milliseconds')
 
     return {"timestamp": timestamp, "cpu": cpu_usage, "memory": memory_usage}
   except Exception as e:

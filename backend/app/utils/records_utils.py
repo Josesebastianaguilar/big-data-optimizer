@@ -8,6 +8,7 @@ from app.models.repository import Repository
 from pathlib import Path
 from bson.objectid import ObjectId
 from app.database import recreate_records_indexes_from_repositories
+from pymongo import UpdateOne
 import mimetypes
 import pandas as pd
 import logging
@@ -213,3 +214,51 @@ async def store_repository_records(repository: Repository, delete_existing_recor
     except Exception as e:
         logging.error(f"Error storing records for repository {repository['_id']}: {e}", exc_info=True)
         raise ValueError(f"Error storing records for repository {repository['_id']}: {e}")
+
+async def change_parameters_type(repository_id: str, changed_parameters: List[str]):
+    repository = await db["repositories"].find_one({"_id": ObjectId(repository_id)}, {"parameters": 1, "current_data_size": 1, "data_ready": 1, "version": 1})
+    
+    if not repository:
+        logging.error(f"Repository with ID {repository_id} not found.")
+        raise HTTPException(status_code=404, detail="Repository not found")
+    
+    if not repository.get("parameters"):
+        logging.error(f"Repository with ID {repository_id} has no parameters.")
+        raise HTTPException(status_code=400, detail="Repository has no parameters")
+    
+    try:
+        logging.info(f"Changing parameter types for repository {repository_id}")
+        logging.info(f"total records to change: {repository['current_data_size']}")
+        for i in range(0, repository["current_data_size"], RECORDS_BATCH_SIZE):
+            records = await db["records"].find({"repository": ObjectId(repository_id)}).sort("_id", 1).skip(i).limit(RECORDS_BATCH_SIZE).to_list(length=None)
+            for parameter in changed_parameters:
+                repository_parameter = next((param for param in repository["parameters"] if param["name"] == parameter), None)
+                if repository_parameter is None:
+                    logging.error(f"Parameter '{parameter}' not found in repository parameters.")
+                    raise HTTPException(status_code=400, detail=f"Parameter '{parameter}' not found in repository parameters.")
+                
+                for record in records:
+                    value = record["data"].get(parameter)
+                    try:
+                        if repository_parameter["type"] == "number":                            
+                            value = float(value) if value is not None else None
+                        elif repository_parameter["type"] == "string":
+                            value = str(value) if value is not None else None
+                    except Exception as e:
+                        value = None
+                    record["data"][parameter] = value
+                
+                if records:
+                    await db["records"].bulk_write([
+                        UpdateOne({"_id": record["_id"]}, {"$set": {"data": record["data"], "updated_at": datetime.now(), "version": record.get("version", 0) + 1}})
+                        for record in records
+                    ])
+        logging.info(f"Changed parameter types for repository {repository_id} successfully")
+        await db["repositories"].update_one(
+            {"_id": ObjectId(repository_id)},
+            {"$set": {"version": repository["version"] + 1, "updated_at": datetime.now()}}
+        )
+        logging.info(f"Updated repository {repository_id} version to {repository['version'] + 1}")
+    except Exception as e:
+        logging.error(f"Error changing parameter types for repository {repository_id}: {e}", exc_info=True)
+        raise ValueError(f"Error changing parameter types for repository {repository_id}: {e}")

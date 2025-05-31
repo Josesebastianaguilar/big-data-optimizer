@@ -22,7 +22,6 @@ export default function ViewRepositoryPage() {
     try {
       setLoading(true);
       const response = await api.get(`/repositories/?_id=${id}`);
-      console.log('response', response);
       setRepository(response.data.items[0] || {});
       if (!response.data.items.length) {
         showSnackbar("Repository not found", "error", false, "top-right");
