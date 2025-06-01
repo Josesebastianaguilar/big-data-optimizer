@@ -19,6 +19,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env       # make sure this file exists
+    environment:
+      - TZ=${SERVER_TIMEZONE}
     depends_on:
       - mongo
     ports:
@@ -42,6 +44,8 @@ services:
     restart: unless-stopped
     env_file:
       - ./backend/.env
+    environment:
+      - TZ=${SERVER_TIMEZONE}
     depends_on:
       - mongo
     command: >
