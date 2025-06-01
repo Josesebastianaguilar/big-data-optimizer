@@ -79,7 +79,7 @@ async def apply_filter(df: pd.DataFrame, processes, utils, num_processes: int, b
   filter_metrics = Queue()
   filter_lock = Lock()
   stop_event = threading.Event()
-  monitor_thread = threading.Thread(target=monitor_resources, args=(0.01, stop_event, filter_metrics, filter_lock))
+  monitor_thread = threading.Thread(target=monitor_resources, args=(0.250, stop_event, filter_metrics, filter_lock))
   monitor_thread.start()
   
   try:
@@ -118,7 +118,7 @@ async def apply_groupping(df: pd.DataFrame, processes, utils, batch_number: int,
   group_metrics = Queue()
   group_lock = Lock()
   stop_event = threading.Event()
-  monitor_thread = threading.Thread(target=monitor_resources, args=(0.01, stop_event, group_metrics, group_lock))
+  monitor_thread = threading.Thread(target=monitor_resources, args=(0.250, stop_event, group_metrics, group_lock))
   monitor_thread.start()
   try:
     group_results = utils.group_data(df, group_process_item["parameters"])
@@ -154,7 +154,7 @@ async def apply_aggregation(df: pd.DataFrame, processes, utils, batch_number: in
   aggregation_metrics = Queue()
   aggregation_lock = Lock()
   stop_event = threading.Event()
-  monitor_thread = threading.Thread(target=monitor_resources, args=(0.01, stop_event, aggregation_metrics, aggregation_lock))
+  monitor_thread = threading.Thread(target=monitor_resources, args=(0.250, stop_event, aggregation_metrics, aggregation_lock))
   monitor_thread.start()
   try:
     aggregation_results = utils.aggregate_data(df, aggregation_process_item["parameters"])
