@@ -232,12 +232,6 @@ async def start_metrics_results_gathering(process_id: str, processes: List[Any],
         ]).to_list(length=None)
         
         process_input_data_size = input_filter_data_size_list[0]["output_data_size"] if input_filter_data_size_list else 0
-      
-      first_process_batch = await db["process_results"].find_one({"process_item_id": ObjectId(process["_id"]), "batch_number": 1}, {"metrics": 1})
-      last_process_batch = await db["process_results"].find_one({"process_item_id": ObjectId(process["_id"]), "batch_number": total_batches}, {"metrics": 1})
-      
-      if first_process_batch != None and last_process_batch != None:
-        process_time_metrics = get_process_times(first_process_batch["metrics"] + last_process_batch["metrics"])
         
       for i in range(0, total_batches, PROCESS_RESULTS_BATCH_SIZE):
         batch_results = await db["process_results"].find({"process_item_id": ObjectId(process["_id"])}, {"metrics": 1, "results": 1, "output_data_size": 1}).sort("batch_number", 1).skip(i).limit(PROCESS_RESULTS_BATCH_SIZE).to_list(length=None)
@@ -245,7 +239,14 @@ async def start_metrics_results_gathering(process_id: str, processes: List[Any],
         if current_process["task_process"] != "aggregation":
           process_output_data_size += sum(result["output_data_size"] for result in batch_results if result["output_data_size"] is not None)
           
+          
       process_metrics.sort(key=lambda x: x["timestamp"] if isinstance(x, dict) and "timestamp" in x else 0)
+      
+      first_process_metric = process_metrics[0] if len(process_metrics) > 0 else None
+      last_process_metric = process_metrics[::-1][0]  if len(process_metrics) > 0 else None
+      
+      if first_process_metric != None and last_process_metric != None:
+        process_time_metrics = get_process_times([first_process_metric, last_process_metric])
       
       if current_process["task_process"] == "aggregation":
         process_output_data_size = None
