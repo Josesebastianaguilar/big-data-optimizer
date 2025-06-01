@@ -137,7 +137,11 @@ async def store_repository_records(repository: Repository, delete_existing_recor
             with open(file_path, 'rb') as f:
                 rawdata = f.read(sample_size)
             result = chardet.detect(rawdata)
-            return result['encoding'] or 'utf-8'
+            encoding = result['encoding'] or 'utf-8'
+            # Fallback: treat ascii as utf-8
+            if encoding.lower() == 'ascii':
+                encoding = 'utf-8'
+            return encoding
         
         encoding = detect_encoding(file_path)
         logging.info(f"Detected encoding: {encoding}")
