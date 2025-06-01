@@ -145,7 +145,7 @@ export default function RecordsListPage() {
                 <tr key={record._id.$oid} className="hover:bg-gray-100">
                   {repository.parameters.map((param) => (
                     <td key={param.name} className="px-4 py-2 text-sm text-gray-800 text-center">
-                      {typeof record.data[param.name] !== 'object' ? (record.data[param.name]|| '-') : '[Object]'}
+                      {(!record.data[param.name] || typeof record.data[param.name] !== 'object') ? (record.data[param.name]|| '-') : '[Object]'}
                     </td>
                   ))}
                   <td className="px-2 py-2 text-sm text-gray-800 justify-between align-middle">
