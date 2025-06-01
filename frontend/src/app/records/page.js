@@ -171,8 +171,9 @@ export default function RecordsListPage() {
                 </tr>
               ))}
             </tbody>
-          </table>
-          <div className="flex justify-end my-2">
+          </table>          
+        </div>}
+        {!loading && <div className="flex justify-end my-2">
             <Paginator
               page={page}
               totalPages={totalPages}
@@ -182,8 +183,7 @@ export default function RecordsListPage() {
               totalItems={totalItems}
               activeBackgroundColor="bg-purple-500"
             />
-          </div>
-        </div>}
+          </div>}
         {/* Confirmation Modal */}
         <ConfirmationModal
           isOpen={showModal}
