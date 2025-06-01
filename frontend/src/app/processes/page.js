@@ -7,8 +7,9 @@ import Paginator from "@/components/Paginator";
 import PageSize from "@/components/PageSize";
 import ConfirmationModal from "@/components/ConfirmationModal";
 import { useSearchParams, useRouter } from "next/navigation";
-import { FaChevronDown, FaChevronRight, FaSearch, FaCheckCircle, FaWindowClose, FaRedo, FaArrowLeft, FaPlus, FaProjectDiagram, FaArchive, FaTrash } from "react-icons/fa"; 
+import { FaChevronDown, FaChevronRight, FaSearch, FaCheckCircle, FaWindowClose, FaRedo, FaArrowLeft, FaPlus, FaProjectDiagram, FaArchive, FaTrash, FaFileExcel } from "react-icons/fa"; 
 import { useAuth } from "@/context/AuthContext";
+import * as XLSX from "xlsx";
 import api from "@/app/api";
 import Link from "next/link";
 import { useSnackbar } from "@/components/SnackbarContext";
@@ -31,6 +32,71 @@ export default function ProcessesListPage() {
   const searchParams = useSearchParams();
   const router = useRouter();
   const [validated, setValidated] = useState(false);
+
+  const average = arr => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : "N/A";
+
+  const exportToExcel = async () => {
+    if (!processes.length) return;
+
+    const allProcesses = [];
+    const batchSize = 100;
+    const repositoryId = repository?._id?.$oid;
+
+    // Fetch all processes in batches
+    for (let page = 1; allProcesses.length < totalItems; page++) {
+      const response = await api.get(
+        `/processes/${repositoryId}?page=${page}&limit=${batchSize}&select=process_id+trigger_type+task_process+actions+status+duration+input_data_size+metrics+output_data_size+errors+validated+valid+created_at+updated_at+iteration+repository_version+optimized`
+      );
+      allProcesses.push(...response.data.items);
+      if (response.data.items.length < batchSize) break; // No more items
+    }
+
+    // Group by process_id
+    const grouped = {};
+    allProcesses.forEach(proc => {
+      const pid = proc.process_id.$oid;
+      if (!grouped[pid]) grouped[pid] = [];
+      grouped[pid].push(proc);
+    });
+
+    const wb = XLSX.utils.book_new();
+
+    Object.entries(grouped).forEach(([process_id, procs]) => {
+      const wsData = procs.map(proc => {
+        const metrics = proc.metrics || [];
+        const avgCpu = average(metrics.map(m => m.cpu));
+        const avgMem = average(metrics.map(m => m.memory));
+        return {
+          optimized: proc.optimized ? "Yes" : "No",
+          trigger_type: proc.trigger_type,
+          avg_cpu: +Number(avgCpu).toFixed(2),
+          avg_memory: +Number(avgMem).toFixed(2),
+          duration: +Number(proc.duration),
+          created_at: new Date(proc.created_at.$date).toDateString(),
+          updated_at: new Date(proc.updated_at.$date).toDateString(),
+          errors: proc.errors ||  "No errors",
+          validated: proc.validated ? "Yes" : "No",
+          valid: proc.valid ? "Yes" : "No",
+          actions: proc.actions ? proc.actions.join(", ") : "",
+          iteration: proc.iteration,
+          task_process: proc.task_process,
+          status: proc.status,
+          input_data_size: Number(proc.input_data_size),
+          output_data_size: Number(proc.output_data_size),
+        };
+      });
+
+      // Set column order and headers
+      const headers = [
+        "optimized", "trigger_type", "created_at", "updated_at", "errors", "validated", "valid", "task_process", "status",
+        "actions", "iteration", "avg_cpu", "avg_memory", "duration",  "input_data_size", "output_data_size"
+      ];
+      const ws = XLSX.utils.json_to_sheet(wsData, { header: headers });
+      XLSX.utils.book_append_sheet(wb, ws, process_id);
+    });
+
+    XLSX.writeFile(wb, `processes_export_${repository?.name || '-'}.xlsx`);
+  };
 
   const cancelDelete = () => {
     setShowModal(false);
@@ -88,7 +154,7 @@ export default function ProcessesListPage() {
   const fetchProcesses = async (newPage = 1, newLimit = 1) => {
     try {
       setLoading(true);
-      const response = await api.get(`/processes/${searchParams.get("repository")}?page=${newPage}&limit=${newLimit}&select=process_id+trigger_type+task_process+actions+status+duration+input_data_size+output_data_size+errors+validated+valid+created_at+updated_at+iteration+repository_version+optimized`);
+      const response = await api.get(`/processes/${searchParams.get("repository")}?page=${newPage}&limit=${newLimit}&select=process_id+trigger_type+task_process+actions+status+duration+input_data_size+metrics+output_data_size+errors+validated+valid+created_at+updated_at+iteration+repository_version+optimized`);
       if (page > response.data.totalPages && response.data.items.length) {
         fetchProcesses(1, 10);
         showSnackbar("Current page exceeds total pages, resetting to page 1", "warning", true, "bottom-right");
@@ -146,7 +212,7 @@ export default function ProcessesListPage() {
     }
     if (token) {
       fetchRepository(); 
-      fetchProcesses(1, 10);
+      fetchProcesses(1, 100);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [token, authLoading]);
@@ -233,12 +299,19 @@ export default function ProcessesListPage() {
                 <FaCheckCircle className="inline mr-2 white text-white-500 mr-2" />
                 Validate Processes
               </button>
+              {!loading && processes?.length > 0 && <button
+                className="cursor-pointer ml-2 bg-green-500 hover:bg-green-600 text-white py-2 px-4 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-green-600 focus:ring-offset-2"
+                onClick={exportToExcel}
+              >
+                <FaFileExcel className="inline mr-2 white text-white-500 mr-2" />
+                Export to Excel
+              </button>}
               {role && role === 'admin' && <button
                 onClick={() => setShowModal(true)}
                 className="ml-2 inline cursor-pointer bg-red-500 hover:bg-red-600 text-white py-2 px-4 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-red-600 focus:ring-offset-2"
               >
                 <FaTrash className="cursor-pointer w-4 h-4" title="Reset repository processes"/>
-              </button>}
+              </button>}              
             </div>}
             {processes?.length > 0 && <div className="flex justify-end my-2">
               <PageSize page={page} value={limit} onChange={fetchProcesses}/>

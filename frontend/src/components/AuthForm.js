@@ -13,7 +13,6 @@ export default function AuthForm({ type, onSubmit }) {
     setLoading(true);
     try {
       const auth_submit = await onSubmit({ username, password });
-      console.log('auth_submit', auth_submit);
       setUsername("");
       setPassword("");
     } finally {

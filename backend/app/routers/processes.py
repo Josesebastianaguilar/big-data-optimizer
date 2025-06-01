@@ -172,7 +172,6 @@ async def validate_processes_endpoint(request: Request, current_user: dict = Dep
 
 @router.delete("/{repository_id}")
 async def reset_processes(repository_id: str, current_user: dict = Depends(get_current_user)) -> dict:
-    print('current_user', current_user)
     """
     Reset processes for a specific repository.
     """

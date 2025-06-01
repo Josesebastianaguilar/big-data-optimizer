@@ -59,6 +59,7 @@ def monitor_resources(interval, stop_event, measurements, lock):
   """
   try:
     monitor_process = psutil.Process()
+    monitor_process.cpu_percent(interval=None)
     while not stop_event.is_set():
         with lock:
           measurements.put(get_metrics(monitor_process))

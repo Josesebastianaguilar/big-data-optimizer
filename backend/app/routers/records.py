@@ -23,7 +23,6 @@ async def get_records(repository_id: str, request: Request) -> dict:
         
         parameters = get_query_params(request)
         parameters["query_params"]["repository"] = ObjectId(repository_id)
-        print('parameters["query_params"]', parameters["query_params"])
         totalItems = 0
         if "_id" in parameters["query_params"]:
             totalItems = await db["records"].count_documents(parameters["query_params"])
