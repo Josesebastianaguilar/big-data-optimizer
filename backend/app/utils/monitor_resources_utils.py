@@ -3,6 +3,21 @@ import logging
 import time
 from datetime import datetime
 from queue import Empty
+from dotenv import load_dotenv
+
+load_dotenv()
+USES_CGROUP_CPU_MEASUREMENT = bool(os.getenv("USES_CGROUP_CPU_MEASUREMENT", "False"))
+CGROUP_CPU_MEASUREMENT_PATH = os.getenv("CGROUP_CPU_MEASUREMENT_PATH", "/sys/fs/cgroup/cpu.stat")
+
+def get_cgroup_cpu_usage():
+  try:
+    with open(CGROUP_CPU_MEASUREMENT_PATH, "r") as f:
+      for line in f:
+        if line.startswith("usage_usec"):
+          return int(line.strip().split()[1]) #q: What will this return? Give me an example. a: # This will return the CPU usage in microseconds, e.g., 12345678.
+  except Exception as e:
+    logging.error(f"Error reading cgroup cpu.stat: {e}")
+  return None
 
 def get_process_times(measurements):
   try:
@@ -39,12 +54,14 @@ def dequeue_measurements(queue, lock):
 
 def get_metrics(process):
   try:
-    cpu_usage_raw = process.cpu_percent(interval=None)
     cpu_usage = 0
-    if cpu_usage > 0 and cpu_usage_raw < 100:
-        cpu_usage = cpu_usage_raw
-    elif cpu_usage_raw >= 100:
-        cpu_usage = cpu_usage_raw - 100
+    if USES_CGROUP_CPU_MEASUREMENT is True:
+        cpu_usage = get_cgroup_cpu_usage()
+        if cpu_usage is None:
+          logging.warning("Cgroup CPU usage could not be retrieved, falling back to process CPU usage.")
+          cpu_usage = process.cpu_percent(interval=None)
+    else:
+      cpu_usage = process.cpu_percent(interval=None)
     #cpu_usage = min(process.cpu_percent(interval=None), 100)
     memory_usage = process.memory_info().rss / (1024 * 1024)# Convert to MB
     timestamp = datetime.now().isoformat(timespec='milliseconds')
@@ -53,6 +70,23 @@ def get_metrics(process):
   except Exception as e:
     logging.error(f"Error in get_metrics: {e}")
     raise e
+
+def compute_cgroup_cpu_percent(samples, num_cpus):
+  cpu_percents = []
+  if not samples:
+      return cpu_percents
+  # Add the first sample with cpu=0
+  first = samples[0].copy()
+  first["cpu"] = 0
+  cpu_percents.append(first)
+  for i in range(1, len(samples)):
+    t0, u0 = samples[i-1]["timestamp"], samples[i-1]["cpu"]
+    t1, u1 = samples[i]["timestamp"], samples[i]["cpu"]
+    dt = (datetime.fromisoformat(t1) - datetime.fromisoformat(t0)).total_seconds()
+    du = u1 - u0  # microseconds
+    percent = (du / 1_000_000) / dt * 100 / num_cpus if dt > 0 else 0
+    cpu_percents.append({"timestamp": t1, "cpu": percent, "memory": samples[i]["memory"]})
+  return cpu_percents
 
 def monitor_resources(interval, stop_event, measurements, lock):
   """

@@ -1,7 +1,7 @@
 from bson.objectid import ObjectId
 from typing import List, Any
 from app.database import db
-from app.utils.monitor_resources_utils import monitor_resources, get_metrics, dequeue_measurements, get_process_times
+from app.utils.monitor_resources_utils import monitor_resources, get_metrics, dequeue_measurements, get_process_times, compute_cgroup_cpu_percent
 from queue import Queue
 from threading import Lock
 from app.utils.general_utils import group_results_to_objects, convert_numpy_types
@@ -21,6 +21,7 @@ import os
 load_dotenv()
 PROCESSES_RECORDS_BATCH_SIZE = int(os.getenv("PROCESSES_RECORDS_BATCH_SIZE", "15000"))
 PROCESS_RESULTS_BATCH_SIZE = int(os.getenv("PROCESS_RESULTS_BATCH_SIZE", "500"))
+USES_CGROUP_CPU_MEASUREMENT = bool(os.getenv("USES_CGROUP_CPU_MEASUREMENT", "False"))
 
 
 async def store_success(process_id, input_data_size, output_data_size, metrics, time_metrics):
@@ -91,6 +92,7 @@ async def apply_filter(df: pd.DataFrame, processes, utils, num_processes: int, b
     stop_event.set()
     monitor_thread.join()
     filter_metrics_list = dequeue_measurements(filter_metrics, filter_lock)
+    
     normalized_filter_results = filter_results["_id"].tolist()
     output_filter_data_size = len(normalized_filter_results)
     
@@ -127,8 +129,10 @@ async def apply_groupping(df: pd.DataFrame, processes, utils, batch_number: int,
     group_metrics_list = dequeue_measurements(group_metrics, group_lock)
     normalized_group_results = utils.map_groupped_records(group_results, "_id")
     grouped_objects = group_results_to_objects(normalized_group_results)
+    
     if group_process_item["optimized"] is True:
       grouped_objects = convert_numpy_types(grouped_objects)
+    
     output_group_data_size = len(grouped_objects) + sum(len(obj["values"]) for obj in grouped_objects)
     
     await store_batch(group_process_item["_id"], group_process_item["process_id"], input_group_data_size, output_group_data_size, group_metrics_list, grouped_objects, batch_number, "group", trigger_type, iteration, group_process_item["optimized"])
@@ -161,6 +165,7 @@ async def apply_aggregation(df: pd.DataFrame, processes, utils, batch_number: in
     stop_event.set()
     monitor_thread.join()
     aggregation_metrics_list = dequeue_measurements(aggregation_metrics, aggregation_lock)
+    
     if aggregation_process_item["optimized"] is True:
       aggregation_results = convert_numpy_types(aggregation_results)
     
@@ -209,7 +214,7 @@ async def process_data(df: pd.DataFrame, processes, utils, num_processes, action
   elif "aggregation" in actions:
     await apply_aggregation(df, processes, utils, batch_number, trigger_type, iteration)
     
-async def start_metrics_results_gathering(process_id: str, processes: List[Any], repository: Any, actions, trigger_type: str, total_batches):
+async def start_metrics_results_gathering(process_id: str, processes: List[Any], repository: Any, actions, trigger_type: str, total_batches, total_num_processes: int = 1):
   """
   Gather metrics and results for a given process.
   """
@@ -241,6 +246,9 @@ async def start_metrics_results_gathering(process_id: str, processes: List[Any],
           
           
       process_metrics.sort(key=lambda x: x["timestamp"] if isinstance(x, dict) and "timestamp" in x else 0)
+      
+      if USES_CGROUP_CPU_MEASUREMENT is True:
+        process_metrics = compute_cgroup_cpu_percent(process_metrics, total_num_processes)
       
       first_process_metric = process_metrics[0] if len(process_metrics) > 0 else None
       last_process_metric = process_metrics[::-1][0]  if len(process_metrics) > 0 else None
@@ -283,7 +291,7 @@ async def start_process(process_id: str, repository_id: str, actions, iteration:
             process_data(df, optimized_processes, opt_utils, max(total_num_processes - 3, 1), actions, True, batch_number, trigger_type, iteration)
         )
       
-      await start_metrics_results_gathering(process_id, processes, repository, actions, trigger_type, total_batches)
+      await start_metrics_results_gathering(process_id, processes, repository, actions, trigger_type, total_batches, total_num_processes)
     except Exception as e:
       logging.error(f"Error processing data for process_id {process_id}: {e}")
       raise e
