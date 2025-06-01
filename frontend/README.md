@@ -1,8 +1,25 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://github.com/vercel/next.js/tree/canary/packages/create-next-app).
+# Big Data Optimizer Frontend
 
-## Getting Started
+This is the **frontend** for the Big Data Optimizer project, built with [Next.js](https://nextjs.org).  
+It provides a user interface for managing repositories, uploading large CSV files, monitoring processing jobs, and visualizing results.
 
-First, run the development server:
+---
+
+## 🚀 Getting Started
+
+### 1. **Install dependencies**
+
+```bash
+npm install
+# or
+yarn install
+# or
+pnpm install
+# or
+bun install
+```
+
+### 2. **Run the development server**
 
 ```bash
 npm run dev
@@ -14,23 +31,71 @@ pnpm dev
 bun dev
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+Open [http://localhost:3000](http://localhost:3000) in your browser to view the app.
 
-You can start editing the page by modifying `app/page.js`. The page auto-updates as you edit the file.
+---
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+## 🛠️ Project Structure
 
-## Learn More
+- `/src/app/` — Main Next.js app directory (pages, components, layouts)
+- `/src/components/` — Reusable React components
+- `public/` — Static assets
 
-To learn more about Next.js, take a look at the following resources:
+---
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## ⚙️ Features
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+- **Repository Management:** Create, update, and view data repositories.
+- **File Upload:** Upload large CSV files for processing.
+- **Batch Processing:** Monitor the status of data processing jobs.
+- **Results Visualization:** View and validate processing results and metrics.
+- **Responsive UI:** Built with modern React and Next.js best practices.
 
-## Deploy on Vercel
+---
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## 📦 Environment Variables
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+If your frontend needs to connect to a backend API, create a `.env.local` file in this directory and set (check the `.env.local.example` file):
+
+```
+NEXT_PUBLIC_API_URL=http://localhost:8000
+```
+
+Adjust the URL as needed for your backend.
+
+---
+
+## 📝 Customization
+
+- Edit `app/page.js` or other files in `app/` to customize pages.
+- Add new components in `components/` as needed.
+- Update styles in `styles/`.
+
+---
+
+## 📚 Learn More
+
+- [Next.js Documentation](https://nextjs.org/docs)
+- [React Documentation](https://react.dev/)
+- [Big Data Optimizer Backend](../backend/README.md) (for API details)
+
+---
+
+## 🚀 Deployment
+
+The recommended way to deploy this frontend is with [Vercel](https://vercel.com/) or any platform that supports Next.js.
+
+See [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+
+---
+
+## 🤝 Contributing
+
+Pull requests and feedback are welcome!  
+Please open an issue or submit a PR if you have suggestions or improvements.
+
+---
+
+## License
+
+This project is licensed under the MIT License.

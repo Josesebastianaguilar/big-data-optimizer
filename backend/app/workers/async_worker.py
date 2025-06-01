@@ -1,6 +1,6 @@
 import asyncio
 from app.logging_config import *
-from app.database import recreate_records_indexes_from_repositories, db
+from app.database import db
 from app.utils.records_utils import delete_repository_related_data, store_repository_records, change_parameters_type
 from app.utils.validation_utils import init_validation
 from app.utils.processing_utils import start_process, prepare_cron_initiated_processes, reset_processes
@@ -15,7 +15,6 @@ JOB_DISPATCH = {
     "start_process": start_process,
     "delete_repository": delete_repository_related_data,
     "store_repository_records": store_repository_records,
-    "reset_indexes": recreate_records_indexes_from_repositories,
     "validate_processes": init_validation,
     "change_parameters_type": change_parameters_type,
     "prepare_cron_processes": prepare_cron_initiated_processes,

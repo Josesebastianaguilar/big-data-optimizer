@@ -5,7 +5,7 @@ import os
 import json
 from fastapi import Request, Response, HTTPException
 from typing import List
-from app.database import db, recreate_records_indexes_from_repositories
+from app.database import db
 from bson.objectid import ObjectId
 from dotenv import load_dotenv
 from datetime import datetime
@@ -100,8 +100,8 @@ async def upsert_repository(repository_id, name, description, url, large_file, f
         validate_repository_file(repository)
         now = datetime.now()
         repository_data = {"name": repository["name"], "description": repository["description"], "url": repository["url"], "version": 0, "updated_at": now, "parameters": parameters}
-        if ("file" in repository and repository["file"] is not None) or repository["large_file"] is True:
-            print("Has file")
+        has_file = ("file" in repository and repository["file"] is not None) or repository["large_file"] is True
+        if has_file:
             repository_data["parameters"] = []
             repository_data["data_ready"] = False
             repository_data["valid"] = False
@@ -112,9 +112,11 @@ async def upsert_repository(repository_id, name, description, url, large_file, f
             repository["_id"] = repository_id
 
         try:
-            changed_parameters = await get_changed_type_parameters(repository_id, parameters)
+            changed_parameters = []
+            if not has_file:
+                changed_parameters = await get_changed_type_parameters(repository_id, parameters)
             result = await db["repositories"].update_one({"_id": ObjectId(repository_id)}, {"$set": repository_data})
-            if len(changed_parameters) > 0:
+            if len(changed_parameters) > 0 and not has_file:
                 await db["jobs"].insert_one({"type": "change_parameters_type", "data": {"repository_id": repository_id, "changed_parameters": changed_parameters}})
             
             if "file" in repository and repository["file"] is not None:

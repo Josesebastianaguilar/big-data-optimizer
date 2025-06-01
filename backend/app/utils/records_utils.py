@@ -7,7 +7,6 @@ from io import BytesIO
 from app.models.repository import Repository
 from pathlib import Path
 from bson.objectid import ObjectId
-from app.database import recreate_records_indexes_from_repositories
 from pymongo import UpdateOne
 import mimetypes
 import pandas as pd
@@ -78,7 +77,7 @@ async def delete_collection_in_batches(collection, filter_query, batch_size=1000
         if result.deleted_count < batch_size:
             break
 
-async def delete_repository_related_data(repository_id: str, reset_indexes: bool = True):
+async def delete_repository_related_data(repository_id: str):
     """
     Delete all records and processes related to the repository.
     """
@@ -87,8 +86,6 @@ async def delete_repository_related_data(repository_id: str, reset_indexes: bool
         filter_query = {"repository": ObjectId(repository_id)}
         await delete_collection_in_batches(db["records"], filter_query)
         await delete_collection_in_batches(db["processes"], filter_query)
-        if reset_indexes is True:
-            await recreate_records_indexes_from_repositories()
         
         logging.info(f"Deleted all records and processes for repository {repository_id}")
     except Exception as e:
@@ -100,7 +97,7 @@ async def store_repository_records(repository: Repository, delete_existing_recor
         # Delete existing records if needed
         if delete_existing_records:
             try:
-                await delete_repository_related_data(str(repository["_id"]), False)
+                await delete_repository_related_data(str(repository["_id"]))
             except Exception as e:
                 logging.error(f"Error deleting existing records and processes for repository {repository['_id']}: {e}")
                 raise ValueError(f"Error deleting existing records and processes for repository {repository['_id']}: {e}")
@@ -209,8 +206,7 @@ async def store_repository_records(repository: Repository, delete_existing_recor
             except Exception as e:
                 logging.error(f"Error deleting file at {file_path}: {e}")
 
-        await recreate_records_indexes_from_repositories()
-
+        logging.info(f"Stored records for repository {repository['_id']} successfully")
     except Exception as e:
         logging.error(f"Error storing records for repository {repository['_id']}: {e}", exc_info=True)
         raise ValueError(f"Error storing records for repository {repository['_id']}: {e}")

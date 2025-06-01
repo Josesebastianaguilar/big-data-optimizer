@@ -53,7 +53,7 @@ export default function RepositoryForm({
         if (!largeFile) formData.append("file", file);
       }
       if (type === 'edit'){
-        formData.append("parameters", JSON.stringify(parameters));
+        formData.append("parameters", !changeFile ? JSON.stringify(parameters) : JSON.stringify([]));
       }
       
       
