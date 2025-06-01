@@ -33,7 +33,8 @@ export default function ProcessesListPage() {
   const router = useRouter();
   const [validated, setValidated] = useState(false);
 
-  const average = arr => arr.length ? (arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : "N/A";
+  const average = arr => arr.length ? +(arr.reduce((a, b) => a + b, 0) / arr.length).toFixed(2) : "N/A";
+  const averageCpu = arr => arr.length <= 1 ? 0 : +(arr.slice(1).reduce((a, b) => a + b, 0) / (arr.length - 1)).toFixed(2);
 
   const exportToExcel = async () => {
     if (!processes.length) return;
@@ -64,7 +65,7 @@ export default function ProcessesListPage() {
     Object.entries(grouped).forEach(([process_id, procs]) => {
       const wsData = procs.map(proc => {
         const metrics = proc.metrics || [];
-        const avgCpu = average(metrics.map(m => m.cpu));
+        const avgCpu = process.env.NEXT_PUBLIC_USES_CGROUP_CPU_MEASUREMENT ? averageCpu(metrics.map(m => m.cpu)) : average(metrics.map(m => m.cpu));
         const avgMem = average(metrics.map(m => m.memory));
         return {
           optimized: proc.optimized ? "Yes" : "No",

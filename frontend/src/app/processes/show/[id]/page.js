@@ -30,7 +30,7 @@ export default function ProcessShowView() {
   const { token, authLoading } = useAuth();
   const [loading, setLoading] = useState(false);
   const [repository, setRepository] = useState(null);
-  const [process, setProcess] = useState(null);
+  const [processItem, setProcessItem] = useState(null);
   const { id } = useParams();
   const [lineChartData, setLineChartData] = useState(null);
   const [doughnutData, setDoughnutData] = useState(null);
@@ -68,7 +68,7 @@ export default function ProcessShowView() {
     try {
       setLoading(true);
       const response = await api.get(`/processes/${searchParams.get("repository")}?_id=${id}&select=parameters+task_process+actions+status+process_id+optimized+trigger_type+start_time+end_time+duration+input_data_size+output_data_size+errors+valid+validated+created_at+updated_at+iteration+repository_version+repository+metrics`);
-      setProcess(() => response.data.items[0] || null);
+      setProcessItem(() => response.data.items[0] || null);
       setLineChartData(() => {
         const metrics = response.data.items[0].metrics || [];
         if (!metrics.length) return null;
@@ -108,7 +108,7 @@ export default function ProcessShowView() {
           datasets: [
             {
               data: [
-                cpuArr.reduce((a, b) => a + b, 0) / cpuArr.length,
+                process.env.NEXT_PUBLIC_USES_CGROUP_CPU_MEASUREMENT ? (cpuArr.length <= 1 ? 0 : cpuArr.slice(1).reduce((a, b) => a + b, 0) / (cpuArr.length - 1)) : cpuArr.reduce((a, b) => a + b, 0) / cpuArr.length,
                 memoryArr.reduce((a, b) => a + b, 0) / memoryArr.length,
               ],
               backgroundColor: ["#2563eb", "#22c55e"],
@@ -208,30 +208,30 @@ export default function ProcessShowView() {
                       <strong>Version:</strong> {repository.version}
                     </p>
                   </div>}
-        {process && <div className="bg-white rounded-lg shadow p-6">
+        {processItem && <div className="bg-white rounded-lg shadow p-6">
           <div className="flex justify-end items-center mb-2">
             <Link
               title="New Process"
-              href={`/processes/create?repository=${process.repository.$oid}`}
+              href={`/processes/create?repository=${processItem.repository.$oid}`}
               className="bg-blue-500  hover:bg-blue-600 text-white mr-2 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-600 focus:ring-offset-2"
             >
               <FaPlus className="w-4 h-4" />
             </Link>
-            {process.results?.length && false && (<Link
+            {processItem.results?.length && false && (<Link
               title="Show Results"
-              href={`/processes/results/${process._id}`}
+              href={`/processes/results/${processItem._id}`}
               className="bg-slate-500  hover:bg-slate-600 text-white mr-2 py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-slate-600 focus:ring-offset-2"
             >
               <FaChartBar className="w-4 h-4" />
             </Link>)}
-            {process.trigger_type === 'user' && <div onClick={() => iterate(process.process_id.$oid)}
+            {processItem.trigger_type === 'user' && <div onClick={() => iterate(processItem.process_id.$oid)}
                 title="Re-run Process"
                 className="text-white py-2 px-4 rounded-md cursor-pointer bg-orange-500 mr-2 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-500 focus:ring-offset-2">
                   <FaRedo className="w-4 h-4" />
             </div>}          
             <Link
               title="Go Back"
-              href={`/processes?repository=${process.repository.$oid}`}
+              href={`/processes?repository=${processItem.repository.$oid}`}
               className="inline-block bg-gray-600 text-white py-2 px-4 rounded-md hover:bg-gray-700 focus:outline-none focus:ring-2 focus:ring-gray-500 focus:ring-offset-2"
             >
               <FaArrowLeft className="w-4 h-4" />
@@ -239,29 +239,29 @@ export default function ProcessShowView() {
           </div>
           <h2 className="text-2xl w-full font-bold mb-4">Process Details</h2>
           <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 mb-6">
-            <div><strong>Task Process:</strong> {capitalize(process.task_process)}</div>
-            <div><strong>Actions:</strong> {process.actions.map(action => capitalize(action)).join(", ")}</div>
-            <div><strong>Status:</strong> {capitalize(process.status)}</div>
-            <div><strong>Process ID:</strong> {process.process_id.$oid}</div>
-            <div><strong>Optimized:</strong> {process.optimized ? <FaCheckCircle className="text-center text-green-800 inline"/> : <FaWindowClose className="text-center inline rounded-full  text-red-600"/>}</div>
-            <div><strong>Trigger Type:</strong> {capitalize(process.trigger_type)}</div>
-            <div><strong>Start Time:</strong> {formatIsoToHMSMs(process.start_time)}</div>
-            <div><strong>End Time:</strong> {formatIsoToHMSMs(process.end_time)}</div>
-            <div><strong>Duration:</strong> {process.duration ? (process.duration + ' ms') : '0 ms'}</div>
-            <div><strong>Input # of records:</strong> {process.input_data_size}</div>
-            {process.task_process !== 'aggregation' && <div><strong>Output # number of records:</strong> {process.output_data_size}</div>}
-            <div><strong>Errors:</strong> {process.errors ? process.errors : <span className="text-green-600">None</span>}</div>
-            <div><strong>Validated:</strong> {process.valid ? <FaCheckCircle className="text-center text-green-800 inline"/> : <FaWindowClose className="text-center rounded-full inline text-red-600"/>}</div>
-            <div><strong>Valid:</strong> {process.validated ? <FaCheckCircle className="text-center text-green-800 inline"/> : <FaWindowClose className="text-center rounded-full inline text-red-600"/>}</div>
-            <div><strong>Created At:</strong> {new Date(process.created_at.$date).toDateString()}</div>
-            <div><strong>Updated At:</strong> {new Date(process.updated_at.$date).toDateString()}</div>
-            <div><strong>Iteration:</strong> {process.iteration}</div>
-            <div><strong>Repository Version:</strong> {process.repository_version}</div>
-            {process.task_process === 'group' && <div><strong>Parameters:</strong> {process.parameters.map(param => capitalize(param)).join(', ')}</div>}
+            <div><strong>Task Process:</strong> {capitalize(processItem.task_process)}</div>
+            <div><strong>Actions:</strong> {processItem.actions.map(action => capitalize(action)).join(", ")}</div>
+            <div><strong>Status:</strong> {capitalize(processItem.status)}</div>
+            <div><strong>Process ID:</strong> {processItem.process_id.$oid}</div>
+            <div><strong>Optimized:</strong> {processItem.optimized ? <FaCheckCircle className="text-center text-green-800 inline"/> : <FaWindowClose className="text-center inline rounded-full  text-red-600"/>}</div>
+            <div><strong>Trigger Type:</strong> {capitalize(processItem.trigger_type)}</div>
+            <div><strong>Start Time:</strong> {formatIsoToHMSMs(processItem.start_time)}</div>
+            <div><strong>End Time:</strong> {formatIsoToHMSMs(processItem.end_time)}</div>
+            <div><strong>Duration:</strong> {(processItem.duration || processItem.duration === 0) ? (processItem.duration + ' ms') : '0 ms'}</div>
+            <div><strong>Input # of records:</strong> {processItem.input_data_size}</div>
+            {processItem.task_process !== 'aggregation' && <div><strong>Output # number of records:</strong> {processItem.output_data_size}</div>}
+            <div><strong>Errors:</strong> {processItem.errors ? processItem.errors : <span className="text-green-600">None</span>}</div>
+            <div><strong>Validated:</strong> {processItem.valid ? <FaCheckCircle className="text-center text-green-800 inline"/> : <FaWindowClose className="text-center rounded-full inline text-red-600"/>}</div>
+            <div><strong>Valid:</strong> {processItem.validated ? <FaCheckCircle className="text-center text-green-800 inline"/> : <FaWindowClose className="text-center rounded-full inline text-red-600"/>}</div>
+            <div><strong>Created At:</strong> {new Date(processItem.created_at.$date).toDateString()}</div>
+            <div><strong>Updated At:</strong> {new Date(processItem.updated_at.$date).toDateString()}</div>
+            <div><strong>Iteration:</strong> {processItem.iteration}</div>
+            <div><strong>Repository Version:</strong> {processItem.repository_version}</div>
+            {processItem.task_process === 'group' && <div><strong>Parameters:</strong> {processItem.parameters.map(param => capitalize(param)).join(', ')}</div>}
           </div>
-          {process.task_process !== 'group' && <div className="mb-2"><strong>Parameters:</strong></div>}
-          {process.task_process !== 'group' && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 mb-6">
-            {process.parameters.map((parameter, index) =>(
+          {processItem.task_process !== 'group' && <div className="mb-2"><strong>Parameters:</strong></div>}
+          {processItem.task_process !== 'group' && <div className="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-2 mb-6">
+            {processItem.parameters.map((parameter, index) =>(
               <div key={`parameter_${index}`} className="mb-2">
                 { Object.keys(parameter).map((key, keyIndex) => (
                   <div key={key}>
@@ -273,7 +273,7 @@ export default function ProcessShowView() {
           </div>}
 
           {/* Metrics Charts */}
-          {process.metrics.length && (
+          {processItem.metrics.length && (
             <div className="mb-8">
               <h3 className="text-lg font-bold mb-2">Metrics</h3>
               {lineChartData && <div className="mb-4 bg-gray-50 rounded p-4">
