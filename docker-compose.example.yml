@@ -37,6 +37,7 @@ services:
   
   worker_async:
     pid: "host"
+    #privileged: true Only if pid: "host" not working
     build:
       context: ./backend
       dockerfile: Dockerfile

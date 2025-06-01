@@ -182,13 +182,14 @@ export default function ProcessShowView() {
         display: true,
         position: "left",
         title: { display: true, text: "CPU (%)" },
+        min: 0
       },
       y1: {
         type: "linear",
         display: true,
         position: "right",
         grid: { drawOnChartArea: false },
-        title: { display: true, text: "Memory (MB)" },
+        title: { display: true, text: "Memory (MB)" }
       },
     },
   };
