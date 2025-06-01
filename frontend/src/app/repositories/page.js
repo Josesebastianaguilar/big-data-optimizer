@@ -86,7 +86,7 @@ export default function RepositoriesPage() {
     <div className="min-h-screen flex flex-col items-center justify-between bg-gray-50 text-gray-800">
       <Header backgroundColor="bg-sky-600" title="Repositories" />
       <main className="w-full max-w-6xl px-4">
-        <div className="flex sm:mt-0 justify-between items-center mb-6 mt-6 sm:mt-0">
+        <div className="flex sm:mt-0 justify-between items-center mb-6 mt-6 sm:mt-4">
           {token && role === 'admin' && <Link
             href="/repositories/create"
             className="bg-sky-600 hover:bg-sky-700 text-white py-2 px-4 rounded-md focus:outline-none focus:ring-2 focus:ring-sky-700 focus:ring-offset-2"

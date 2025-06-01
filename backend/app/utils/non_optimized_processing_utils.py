@@ -4,7 +4,7 @@ from typing import List, Any, Dict, Tuple
 from collections import defaultdict
 from app.utils.general_utils import OPERATORS, AGGREGATION_FUNCTIONS
 
-def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]], num_processes = None) -> pd.DataFrame:
+def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.DataFrame:
     """
     Filter a DataFrame using multiple conditions.
     Parameters:

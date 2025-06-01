@@ -7,7 +7,7 @@ from queue import Empty
 from dotenv import load_dotenv
 
 load_dotenv()
-USES_CGROUP_CPU_MEASUREMENT = bool(os.getenv("USES_CGROUP_CPU_MEASUREMENT", "False"))
+USES_CGROUP_CPU_MEASUREMENT = bool(os.getenv("USES_CGROUP_CPU_MEASUREMENT", "").lower() == "true")
 CGROUP_CPU_MEASUREMENT_PATH = os.getenv("CGROUP_CPU_MEASUREMENT_PATH", "/sys/fs/cgroup/cpu.stat")
 
 def get_cgroup_cpu_usage():

@@ -21,7 +21,7 @@ import os
 load_dotenv()
 PROCESSES_RECORDS_BATCH_SIZE = int(os.getenv("PROCESSES_RECORDS_BATCH_SIZE", "15000"))
 PROCESS_RESULTS_BATCH_SIZE = int(os.getenv("PROCESS_RESULTS_BATCH_SIZE", "500"))
-USES_CGROUP_CPU_MEASUREMENT = bool(os.getenv("USES_CGROUP_CPU_MEASUREMENT", "False"))
+USES_CGROUP_CPU_MEASUREMENT = bool(os.getenv("USES_CGROUP_CPU_MEASUREMENT", "").lower() == "true")
 
 
 async def store_success(process_id, input_data_size, output_data_size, metrics, time_metrics):
@@ -85,10 +85,7 @@ async def apply_filter(df: pd.DataFrame, processes, utils, num_processes: int, b
   
   try:
     filter_results = None
-    if filter_process_item["optimized"] is True:
-      filter_results = await utils.filter_data(df, filter_process_item["parameters"], num_processes)
-    else:
-      filter_results = utils.filter_data(df, filter_process_item["parameters"], num_processes)
+    filter_results = utils.filter_data(df, filter_process_item["parameters"])
     stop_event.set()
     monitor_thread.join()
     filter_metrics_list = dequeue_measurements(filter_metrics, filter_lock)
@@ -255,6 +252,9 @@ async def start_metrics_results_gathering(process_id: str, processes: List[Any],
       
       if first_process_metric != None and last_process_metric != None:
         process_time_metrics = get_process_times([first_process_metric, last_process_metric])
+        
+      if len(process_metrics) == 0:
+        process_time_metrics = {"duration": 0}
       
       if current_process["task_process"] == "aggregation":
         process_output_data_size = None
