@@ -62,12 +62,20 @@ export default function ProcessesListPage() {
 
     const wb = XLSX.utils.book_new();
 
+    const cleanRow = row =>
+      Object.fromEntries(
+        Object.entries(row).map(([k, v]) => [
+          k,
+          (v === undefined || v === null || Number.isNaN(v)) ? "" : v
+        ])
+      );
+
     Object.entries(grouped).forEach(([process_id, procs]) => {
       const wsData = procs.map(proc => {
         const metrics = proc.metrics || [];
         const avgCpu = process.env.NEXT_PUBLIC_USES_CGROUP_CPU_MEASUREMENT ? averageCpu(metrics.map(m => m.cpu)) : average(metrics.map(m => m.cpu));
         const avgMem = average(metrics.map(m => m.memory));
-        return {
+        return cleanRow({
           optimized: proc.optimized ? "Yes" : "No",
           trigger_type: proc.trigger_type,
           avg_cpu: +Number(avgCpu).toFixed(2),
@@ -84,7 +92,7 @@ export default function ProcessesListPage() {
           status: proc.status,
           input_data_size: Number(proc.input_data_size),
           output_data_size: Number(proc.output_data_size),
-        };
+        });
       });
 
       // Set column order and headers

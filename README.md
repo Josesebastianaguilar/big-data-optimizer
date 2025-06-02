@@ -49,8 +49,8 @@ project-root/
 ### 1. Clone the Repository
 
 ```bash
-git clone https://your-repo-url.git
-cd your-repo
+git clone https://github.com/Josesebastianaguilar/big-data-optimizer.git
+cd big-data-optimizer
 ```
 
 ### 2. Start the System
@@ -68,15 +68,6 @@ This will start:
 ### 3. Access the App
 
 Visit [http://localhost:3000](http://localhost:3000)
-
----
-
-# 🧪 Datasets Used
-
-1. **Electric Vehicle Population Data** – \~235,000 records
-2. **Warehouse & Retail Sales** – \~307,000 records
-3. **Real Estate Sales 2001–2022 GL** – \~1 million records
-4. **Custom Large Dataset** – Up to 50 million records for performance benchmarking
 
 ---
 
@@ -112,4 +103,4 @@ Pull requests are welcome. For major changes, open an issue first to discuss wha
 
 # 📬 Contact
 
-\José Aguilar – \[[jose.aguilar.silva@outlook.com](mailto:jose.aguilar.silva@outlook.com)] – GitHub: \(https://github.com/Josesebastianaguilar) 
+José Aguilar – [jose.aguilar.silva@outlook.com](mailto:jose.aguilar.silva@outlook.com) – GitHub: \(https://github.com/Josesebastianaguilar) 
