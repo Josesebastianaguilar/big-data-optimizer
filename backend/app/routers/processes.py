@@ -35,9 +35,9 @@ async def get_processes(repository_id: str, request:Request, current_user: dict 
 async def process_data(repository_id: str, request: Request, current_user: dict = Depends(get_current_user)) -> dict:
     existing_executing_processes = await db["processes"].find({"status": "in_progress"}, {"results": 0, "metrics": 0, "errors": 0}).to_list(length=None)
         
-    if len(existing_executing_processes) > 0:
-        logging.error(f"There are executing processes. Please try again later")
-        raise HTTPException(status_code=500, detail=f"There are executing processes. Please try again later")
+    # if len(existing_executing_processes) > 0:
+    #     logging.error(f"There are executing processes. Please try again later")
+    #     raise HTTPException(status_code=500, detail=f"There are executing processes. Please try again later")
     
     process_id = ObjectId()
     body = await request.json()
@@ -109,9 +109,9 @@ async def iterate_process(process_id: str, current_user: dict = Depends(get_curr
     try:
         existing_executing_processes = await db["processes"].find({"status": "in_progress"}, {"results": 0, "metrics": 0, "errors": 0}).to_list(length=None)
         
-        if len(existing_executing_processes) > 0:
-            logging.error(f"There are executing processes. Please try again later")
-            raise HTTPException(status_code=500, detail=f"There are executing processes. Please try again later")
+        # if len(existing_executing_processes) > 0:
+        #     logging.error(f"There are executing processes. Please try again later")
+        #     raise HTTPException(status_code=500, detail=f"There are executing processes. Please try again later")
             
         existing_processes = await db["processes"].find({"process_id": ObjectId(process_id), "trigger_type": "user", "status": {"$ne": "in_progress"}}, {"results": 0, "metrics": 0, "errors": 0}).to_list(length=None)
         if len(existing_processes) == 0:
