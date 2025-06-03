@@ -36,8 +36,8 @@ services:
       - ${UPLOAD_DIR}:/app/backend/uploads
   
   worker_async:
-    pid: "host"
-    #privileged: true Only if pid: "host" not working
+    #pid: "host" # Uncomment this to measure broad system metrics
+    #privileged: true #Only if pid: "host" not working
     build:
       context: ./backend
       dockerfile: Dockerfile
