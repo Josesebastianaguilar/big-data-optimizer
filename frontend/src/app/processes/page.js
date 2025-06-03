@@ -54,7 +54,7 @@ export default function ProcessesListPage() {
 
     // Group by process_id
     const grouped = {};
-    allProcesses.forEach(proc => {
+    allProcesses.sort((a, b) => a.optimized - b-optimized).forEach(proc => {
       const pid = proc.process_id.$oid;
       if (!grouped[pid]) grouped[pid] = [];
       grouped[pid].push(proc);

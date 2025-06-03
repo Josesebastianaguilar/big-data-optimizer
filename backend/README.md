@@ -57,7 +57,7 @@ Start the worker in a separate terminal:
 ```bash
 cd backend
 source venv/bin/activate
-python python -m app.workers.async_worke
+python python -m app.workers.async_worker
 ```
 
 - You can run multiple workers in parallel for higher throughput.
