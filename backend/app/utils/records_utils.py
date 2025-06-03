@@ -86,6 +86,7 @@ async def delete_repository_related_data(repository_id: str):
         filter_query = {"repository": ObjectId(repository_id)}
         await delete_collection_in_batches(db["records"], filter_query)
         await delete_collection_in_batches(db["processes"], filter_query)
+        await delete_collection_in_batches(db["process_results"], filter_query)
         
         logging.info(f"Deleted all records and processes for repository {repository_id}")
     except Exception as e:

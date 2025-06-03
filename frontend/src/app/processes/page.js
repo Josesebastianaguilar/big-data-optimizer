@@ -304,7 +304,7 @@ export default function ProcessesListPage() {
           <div className="bg-white rounded-lg shadow p-4">
             <h3 className="text-xl font-bold mb-4"><FaProjectDiagram className="w-4 h-4 inline text-orange-500" /> Processes</h3>
             {processes?.length > 0 && <div className="flex justify-end my-2">
-              <button className={`text-white fonrt-bold py-2 px-4 rounded-md mb-2 ${validated ? 'bg-orange-300 ' : 'cursor-pointer bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2'}`} disabled={validated} onClick={() => validate()}>
+              <button className={`text-white fonrt-bold py-2 px-4 rounded-md mb-2 ${validated || true ? 'bg-orange-300 ' : 'cursor-pointer bg-orange-500 hover:bg-orange-600 focus:outline-none focus:ring-2 focus:ring-orange-600 focus:ring-offset-2'}`} disabled={validated || true} onClick={() => validate()}>
                 <FaCheckCircle className="inline mr-2 white text-white-500 mr-2" />
                 Validate Processes
               </button>

@@ -42,8 +42,10 @@ async def main():
           # Pass job["data"] as arguments, adjust as needed
           if isinstance(job.get("data"), dict):
               await task_func(**job["data"])
+              logging.info("Waiting for the next job...")
           elif job.get("data") is not None:
               await task_func(job["data"])
+              logging.info("Waiting for the next job...")
           else:
               await task_func()
         except Exception as e:
