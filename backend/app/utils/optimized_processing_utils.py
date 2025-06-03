@@ -4,8 +4,53 @@ import multiprocessing as mp
 import asyncio
 from typing import List, Any, Dict
 
+# def filter_data(df: pd.DataFrame, filters: List[Any]) -> pd.DataFrame:
+#     # Try to use .query() if possible
+#     try:
+#         query_parts = []
+#         for condition in filters:
+#             col = condition["name"]
+#             op = condition["operator"]
+#             val = condition["value"]
+#             if op == "contains":
+#                 # fallback to mask for contains
+#                 mask = pd.Series([True] * len(df))
+#                 for condition in filters:
+#                     op_func = OPERATORS[condition["operator"]]["action"]
+#                     value = condition["value"]
+#                     if condition["operator"] == "contains":
+#                         mask &= op_func(df[condition["name"]].astype(str), str(value))
+#                     else:
+#                         try:
+#                             value_cast = float(value)
+#                         except (ValueError, TypeError):
+#                             value_cast = value
+#                         mask &= op_func(df[condition["name"]], value_cast)
+#                 return df[mask]
+#             else:
+#                 # For numbers and equality
+#                 if isinstance(val, str):
+#                     val = f'"{val}"'
+#                 query_parts.append(f"`{col}` {op} {val}")
+#         query_str = " and ".join(query_parts)
+#         return df.query(query_str)
+#     except Exception:
+#         # fallback to mask
+#         mask = pd.Series([True] * len(df))
+#         for condition in filters:
+#             op_func = OPERATORS[condition["operator"]]["action"]
+#             value = condition["value"]
+#             if condition["operator"] == "contains":
+#                 mask &= op_func(df[condition["name"]].astype(str), str(value))
+#             else:
+#                 try:
+#                     value_cast = float(value)
+#                 except (ValueError, TypeError):
+#                     value_cast = value
+#                 mask &= op_func(df[condition["name"]], value_cast)
+#         return df[mask]
 def filter_data(df: pd.DataFrame, filters: List[Any]) -> pd.DataFrame:
-    # Try to use .query() if possible
+    numeric_ops = {"==", "!=", ">", "<", ">=", "<="}
     try:
         query_parts = []
         for condition in filters:
@@ -20,12 +65,15 @@ def filter_data(df: pd.DataFrame, filters: List[Any]) -> pd.DataFrame:
                     value = condition["value"]
                     if condition["operator"] == "contains":
                         mask &= op_func(df[condition["name"]].astype(str), str(value))
-                    else:
+                    elif condition["operator"] in numeric_ops:
+                        col_numeric = pd.to_numeric(df[condition["name"]], errors='coerce')
                         try:
                             value_cast = float(value)
                         except (ValueError, TypeError):
-                            value_cast = value
-                        mask &= op_func(df[condition["name"]], value_cast)
+                            value_cast = float('nan')
+                        mask &= op_func(col_numeric, value_cast)
+                    else:
+                        mask &= op_func(df[condition["name"]], value)
                 return df[mask]
             else:
                 # For numbers and equality
@@ -42,12 +90,15 @@ def filter_data(df: pd.DataFrame, filters: List[Any]) -> pd.DataFrame:
             value = condition["value"]
             if condition["operator"] == "contains":
                 mask &= op_func(df[condition["name"]].astype(str), str(value))
-            else:
+            elif condition["operator"] in numeric_ops:
+                col_numeric = pd.to_numeric(df[condition["name"]], errors='coerce')
                 try:
                     value_cast = float(value)
                 except (ValueError, TypeError):
-                    value_cast = value
-                mask &= op_func(df[condition["name"]], value_cast)
+                    value_cast = float('nan')
+                mask &= op_func(col_numeric, value_cast)
+            else:
+                mask &= op_func(df[condition["name"]], value)
         return df[mask]
 
 
@@ -78,7 +129,7 @@ def group_data(df: pd.DataFrame, group_by_parameters: List[str]) -> pd.core.grou
     Returns:
     - pd.core.groupby.generic.DataFrameGroupBy: A DataFrameGroupBy object.
     """
-    return df.groupby(group_by_parameters)
+    return df.groupby(group_by_parameters, dropna=True)
 
 def aggregate_data(df: pd.DataFrame, aggregation_parameters: List[dict]) -> List[dict]:
     # Build aggregation dict for pandas
@@ -102,12 +153,13 @@ def aggregate_data(df: pd.DataFrame, aggregation_parameters: List[dict]) -> List
     results = []
     for param in aggregation_parameters:
         name = param["name"]
+        df[name] = pd.to_numeric(df[name], errors='coerce')
         res = {"property": name}
         if name in agg_result:
             for op in agg_dict.get(name, []):
                 res[op] = agg_result[name][op] if op in agg_result[name] else None
         # Manual transforms
-        series = df[name]
+        series = df[name].dropna()
         for op in post_process[name]:
             if op == "unique":
                 res["unique"] = list(series.unique())
