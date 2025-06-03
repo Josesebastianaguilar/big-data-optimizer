@@ -1,6 +1,7 @@
 import pandas as pd
 import operator
 import statistics
+import math
 from typing import List, Any, Dict, Tuple
 from collections import defaultdict
 from app.utils.general_utils import OPERATORS, AGGREGATION_FUNCTIONS
@@ -9,19 +10,30 @@ def filter_data(df: pd.DataFrame, filters: List[Dict[str, Any]]) -> pd.DataFrame
     if not filters:
         return df
     mask = pd.Series([True] * len(df))
+    numeric_ops = {"==", "!=", ">", "<", ">=", "<="}  # Add more if needed
+
     for condition in filters:
-        op_func = OPERATORS[condition["operator"]]["action"]
+        op = condition["operator"]
+        op_func = OPERATORS[op]["action"]
         value = condition["value"]
         col = df[condition["name"]]
-        if condition["operator"] == "contains":
+
+        if op == "contains":
+            # Always treat as string for 'contains'
             mask &= op_func(col.astype(str), str(value))
-        else:
+        elif op in numeric_ops:
+            # Coerce both column and value to numeric for numeric ops
+            col_numeric = pd.to_numeric(col, errors='coerce')
             try:
                 value_cast = float(value)
-            except ValueError:
-                value_cast = value
-            mask &= op_func(col, value_cast)
-    return df[mask].reset_index(drop=True)
+            except (ValueError, TypeError):
+                value_cast = float('nan')
+            mask &= op_func(col_numeric, value_cast)
+        else:
+            # Default: try to match as-is
+            mask &= op_func(col, value)
+    return df[mask]
+
 
 def map_groupped_records(groupped_data: dict, map_property: str) -> dict:
     """
@@ -45,7 +57,7 @@ def group_data(data: List[dict], group_by_parameters: List[str]) -> Dict[Tuple[A
             group_key = tuple(row[param] for param in group_by_parameters)
         except KeyError:
             continue  # skip rows missing a key
-        if any(v is None for v in group_key):
+        if any(v is None or (isinstance(v, float) and math.isnan(v)) for v in group_key):
             continue
         grouped_data[group_key].append(row)
     return grouped_data
@@ -54,7 +66,7 @@ def aggregate_data(df: pd.DataFrame, aggregation_parameters: List[dict]) -> Dict
     results = []
     for aggregation_parameter in aggregation_parameters:
         aggregation_result = {"property": aggregation_parameter["name"]}
-        series_as_list = df[aggregation_parameter["name"]].tolist()
+        series_as_list = pd.to_numeric(df[aggregation_parameter["name"]], errors='coerce').dropna().tolist()
         sorted_list = None  # Only sort if needed
 
         for aggregation in aggregation_parameter["operations"]:

@@ -278,16 +278,16 @@ async def start_process(process_id: str, repository_id: str, actions, iteration:
       non_optimized_processes = [process for process in processes if process["optimized"] is False]
       total_num_processes = mp.cpu_count()
       
-      for j in range(0, 2, 1):   
+      for j in range(0, 2, 1):
         for i in range(0, total_records, PROCESSES_RECORDS_BATCH_SIZE):
           batch_number = (i // PROCESSES_RECORDS_BATCH_SIZE) + 1
           batch = await db["records"].find({"repository": ObjectId(repository_id)}).sort("_id", 1).skip(i).limit(PROCESSES_RECORDS_BATCH_SIZE).to_list(length=None)
           df = pd.DataFrame([{"_id": record["_id"], **record["data"]} for record in batch])
           
           if j == 0:
-            await process_data(df, non_optimized_processes, non_opt_utils, None, actions, False, batch_number, trigger_type, iteration),
-          elif j == 1:
             await process_data(df, optimized_processes, opt_utils, max(total_num_processes - 3, 1), actions, True, batch_number, trigger_type, iteration)
+          elif j == 1:
+            await process_data(df, non_optimized_processes, non_opt_utils, None, actions, False, batch_number, trigger_type, iteration),
       
       await start_metrics_results_gathering(process_id, processes, repository, actions, trigger_type, total_batches, total_num_processes)
     except Exception as e:
