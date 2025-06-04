@@ -39,11 +39,12 @@ async def store_success(process_id, input_data_size, output_data_size, metrics, 
       }
     })
 
-async def store_batch(process_item_id, process_id, input_data_size, output_data_size, metrics, results, batch_number, task_process, trigger_type, iteration, optimized):
+async def store_batch(process_item_id, process_id, input_data_size, output_data_size, metrics, batch_number, task_process, trigger_type, iteration, optimized, repository):
   await db["process_results"].insert_one(
     {
       "process_item_id": ObjectId(process_item_id),
       "process_id": ObjectId(process_id),
+      "repository": ObjectId(repository),
       "input_data_size": input_data_size,
       "output_data_size": output_data_size,
       "optimized": optimized,
@@ -52,7 +53,6 @@ async def store_batch(process_item_id, process_id, input_data_size, output_data_
       "trigger_type": trigger_type,
       "iteration": iteration,
       "metrics": metrics,
-      "results": results,
       "created_at": datetime.now(),
       "updated_at": datetime.now()
     })
@@ -90,21 +90,21 @@ async def apply_filter(df: pd.DataFrame, processes, utils, num_processes: int, b
     monitor_thread.join()
     filter_metrics_list = dequeue_measurements(filter_metrics, filter_lock)
     
-    normalized_filter_results = filter_results["_id"].tolist()
-    output_filter_data_size = len(normalized_filter_results)
+    #normalized_filter_results = filter_results["_id"].tolist()
+    output_filter_data_size = len(filter_results)
     
-    await store_batch(filter_process_item["_id"], filter_process_item["process_id"], input_filter_data_size, output_filter_data_size, filter_metrics_list, normalized_filter_results, batch_number, "filter", trigger_type, iteration, filter_process_item["optimized"])
+    await store_batch(filter_process_item["_id"], filter_process_item["process_id"], input_filter_data_size, output_filter_data_size, filter_metrics_list, batch_number, "filter", trigger_type, iteration, filter_process_item["optimized"], filter_process_item["repository"])
 
     return filter_results
   except Exception as e:
     stop_event.set()
     monitor_thread.join()
     filter_metrics_list = dequeue_measurements(filter_metrics, filter_lock)
-    filter_time_metrics = get_process_times(filter_metrics_list)
-    await store_errors(filter_process["_id"], input_filter_data_size, filter_metrics_list, filter_time_metrics, e)
-    logging.error(f"Error in filter process {str(filter_process_item['_id'])}: {e}")
+    #filter_time_metrics = get_process_times(filter_metrics_list)
+    #await store_errors(filter_process["_id"], input_filter_data_size, filter_metrics_list, filter_time_metrics, e)
+    logging.error(f"Error in filter process {str(filter_process_item['_id'])}: {e}. skipping filter process batch {batch_number}.")
     
-    raise e
+    return 
 
 async def apply_groupping(df: pd.DataFrame, processes, utils, batch_number: int, trigger_type: str, iteration: int):
   input_group_data_size = len(df)
@@ -124,15 +124,15 @@ async def apply_groupping(df: pd.DataFrame, processes, utils, batch_number: int,
     stop_event.set()
     monitor_thread.join()
     group_metrics_list = dequeue_measurements(group_metrics, group_lock)
-    normalized_group_results = utils.map_groupped_records(group_results, "_id")
-    grouped_objects = group_results_to_objects(normalized_group_results)
+    # normalized_group_results = utils.map_groupped_records(group_results, "_id")
+    # grouped_objects = group_results_to_objects(normalized_group_results)
     
-    if group_process_item["optimized"] is True:
-      grouped_objects = convert_numpy_types(grouped_objects)
+    # if group_process_item["optimized"] is True:
+    #   grouped_objects = convert_numpy_types(grouped_objects)
     
-    output_group_data_size = len(grouped_objects) + sum(len(obj["values"]) for obj in grouped_objects)
+    #output_group_data_size = len(grouped_objects) + sum(len(obj["values"]) for obj in grouped_objects)
     
-    await store_batch(group_process_item["_id"], group_process_item["process_id"], input_group_data_size, output_group_data_size, group_metrics_list, grouped_objects, batch_number, "group", trigger_type, iteration, group_process_item["optimized"])
+    await store_batch(group_process_item["_id"], group_process_item["process_id"], input_group_data_size, None, group_metrics_list, batch_number, "group", trigger_type, iteration, group_process_item["optimized"], group_process_item["repository"])
     
     #await store_success(group_process_item["_id"], input_group_data_size, output_group_data_size, group_metrics_list, group_time_metrics, grouped_objects)
     
@@ -140,11 +140,11 @@ async def apply_groupping(df: pd.DataFrame, processes, utils, batch_number: int,
     stop_event.set()
     monitor_thread.join()
     group_metrics_list = dequeue_measurements(group_metrics, group_lock)
-    group_time_metrics = get_process_times(group_metrics_list)
+    #group_time_metrics = get_process_times(group_metrics_list)
     
-    await store_errors(group_process_item["_id"], input_group_data_size, group_metrics_list, group_time_metrics, e)
+    #await store_errors(group_process_item["_id"], input_group_data_size, group_metrics_list, group_time_metrics, e)
     
-    logging.error(f"Error in group process {str(group_process_item['_id'])}: {e}")
+    logging.error(f"Error in group process {str(group_process_item['_id'])}: {e}. skipping group process batch {batch_number}.")
 
 async def apply_aggregation(df: pd.DataFrame, processes, utils, batch_number: int, trigger_type: str, iteration: int):
   input_aggregation_data_size = len(df)
@@ -163,20 +163,21 @@ async def apply_aggregation(df: pd.DataFrame, processes, utils, batch_number: in
     monitor_thread.join()
     aggregation_metrics_list = dequeue_measurements(aggregation_metrics, aggregation_lock)
     
-    if aggregation_process_item["optimized"] is True:
-      aggregation_results = convert_numpy_types(aggregation_results)
+    # if aggregation_process_item["optimized"] is True:
+    #   aggregation_results = convert_numpy_types(aggregation_results)
     
-    await store_batch(aggregation_process_item["_id"], aggregation_process_item["process_id"], input_aggregation_data_size, None, aggregation_metrics_list, aggregation_results, batch_number, "aggregation", trigger_type, iteration, aggregation_process_item["optimized"])
+    await store_batch(aggregation_process_item["_id"], aggregation_process_item["process_id"], input_aggregation_data_size, None, aggregation_metrics_list, batch_number, "aggregation", trigger_type, iteration, aggregation_process_item["optimized"], aggregation_process_item["repository"])
     #await store_success(aggregation_process_item["_id"], input_aggregation_data_size, None, aggregation_metrics_list, aggregation_time_metrics, aggregation_results)
     
   except Exception as e:
     stop_event.set()
     monitor_thread.join()
     aggregation_metrics_list = dequeue_measurements(aggregation_metrics, aggregation_lock)
-    aggregation_time_metrics = get_process_times(aggregation_metrics_list)
+    #aggregation_time_metrics = get_process_times(aggregation_metrics_list)
     
-    await store_errors(aggregation_process_item["_id"], input_aggregation_data_size, aggregation_metrics_list, aggregation_time_metrics, e)
-    logging.error(f"Error in aggregation process {str(aggregation_process_item['_id'])}: {e}")
+    #await store_errors(aggregation_process_item["_id"], input_aggregation_data_size, aggregation_metrics_list, aggregation_time_metrics, e)
+    logging.error(f"Error in aggregation process {str(aggregation_process_item['_id'])}: {e}. skipping aggregation process batch {batch_number}.")
+    return
   
 
 async def process_data(df: pd.DataFrame, processes, utils, num_processes, actions, optimized, batch_number: int, trigger_type, iteration):
