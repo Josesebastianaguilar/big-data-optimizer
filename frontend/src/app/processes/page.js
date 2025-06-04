@@ -46,7 +46,7 @@ export default function ProcessesListPage() {
     // Fetch all processes in batches
     for (let page = 1; allProcesses.length < totalItems; page++) {
       const response = await api.get(
-        `/processes/${repositoryId}?page=${page}&limit=${batchSize}&select=process_id+trigger_type+task_process+actions+status+duration+input_data_size+metrics+output_data_size+errors+validated+valid+created_at+updated_at+iteration+repository_version+optimized`
+        `/processes/${repositoryId}?page=${page}&limit=${batchSize}&status=completed&select=process_id+trigger_type+task_process+actions+status+duration+input_data_size+metrics+output_data_size+errors+validated+valid+created_at+updated_at+iteration+repository_version+optimized`
       );
       allProcesses.push(...response.data.items);
       if (response.data.items.length < batchSize) break; // No more items
@@ -54,7 +54,7 @@ export default function ProcessesListPage() {
 
     // Group by process_id
     const grouped = {};
-    allProcesses.sort((a, b) => a.optimized - b-optimized).forEach(proc => {
+    allProcesses.sort((a, b) => a.optimized - b.optimized).forEach(proc => {
       const pid = proc.process_id.$oid;
       if (!grouped[pid]) grouped[pid] = [];
       grouped[pid].push(proc);
