@@ -100,11 +100,11 @@ async def apply_filter(df: pd.DataFrame, processes, utils, num_processes: int, b
     stop_event.set()
     monitor_thread.join()
     filter_metrics_list = dequeue_measurements(filter_metrics, filter_lock)
-    filter_time_metrics = get_process_times(filter_metrics_list)
-    await store_errors(filter_process["_id"], input_filter_data_size, filter_metrics_list, filter_time_metrics, e)
-    logging.error(f"Error in filter process {str(filter_process_item['_id'])}: {e}")
+    #filter_time_metrics = get_process_times(filter_metrics_list)
+    #await store_errors(filter_process["_id"], input_filter_data_size, filter_metrics_list, filter_time_metrics, e)
+    logging.error(f"Error in filter process {str(filter_process_item['_id'])}: {e}. skipping filter process batch {batch_number}.")
     
-    raise e
+    return 
 
 async def apply_groupping(df: pd.DataFrame, processes, utils, batch_number: int, trigger_type: str, iteration: int):
   input_group_data_size = len(df)
@@ -140,11 +140,11 @@ async def apply_groupping(df: pd.DataFrame, processes, utils, batch_number: int,
     stop_event.set()
     monitor_thread.join()
     group_metrics_list = dequeue_measurements(group_metrics, group_lock)
-    group_time_metrics = get_process_times(group_metrics_list)
+    #group_time_metrics = get_process_times(group_metrics_list)
     
-    await store_errors(group_process_item["_id"], input_group_data_size, group_metrics_list, group_time_metrics, e)
+    #await store_errors(group_process_item["_id"], input_group_data_size, group_metrics_list, group_time_metrics, e)
     
-    logging.error(f"Error in group process {str(group_process_item['_id'])}: {e}")
+    logging.error(f"Error in group process {str(group_process_item['_id'])}: {e}. skipping group process batch {batch_number}.")
 
 async def apply_aggregation(df: pd.DataFrame, processes, utils, batch_number: int, trigger_type: str, iteration: int):
   input_aggregation_data_size = len(df)
@@ -173,10 +173,11 @@ async def apply_aggregation(df: pd.DataFrame, processes, utils, batch_number: in
     stop_event.set()
     monitor_thread.join()
     aggregation_metrics_list = dequeue_measurements(aggregation_metrics, aggregation_lock)
-    aggregation_time_metrics = get_process_times(aggregation_metrics_list)
+    #aggregation_time_metrics = get_process_times(aggregation_metrics_list)
     
-    await store_errors(aggregation_process_item["_id"], input_aggregation_data_size, aggregation_metrics_list, aggregation_time_metrics, e)
-    logging.error(f"Error in aggregation process {str(aggregation_process_item['_id'])}: {e}")
+    #await store_errors(aggregation_process_item["_id"], input_aggregation_data_size, aggregation_metrics_list, aggregation_time_metrics, e)
+    logging.error(f"Error in aggregation process {str(aggregation_process_item['_id'])}: {e}. skipping aggregation process batch {batch_number}.")
+    return
   
 
 async def process_data(df: pd.DataFrame, processes, utils, num_processes, actions, optimized, batch_number: int, trigger_type, iteration):
