@@ -301,11 +301,11 @@ async def prepare_cron_initiated_processes():
     """
     try:
       logging.info("Starting cron initiated process.")
-      existing_executing_processes = await db["processes"].find({"status": "in_progress"}, {"results": 0, "metrics": 0, "errors": 0}).to_list(length=None)
+      # existing_executing_processes = await db["processes"].find({"status": "in_progress"}, {"results": 0, "metrics": 0, "errors": 0}).to_list(length=None)
         
-      if len(existing_executing_processes) > 0:
-          logging.info(f"There are executing processes. The system will try again at the next cron interval.")
-          return
+      # if len(existing_executing_processes) > 0:
+      #     logging.info(f"There are executing processes. The system will try again at the next cron interval.")
+      #     return
       repositories = await db["repositories"].find({"data_ready": True}).to_list(length=None)
       if len(repositories) == 0:
         logging.info("No repositories found with data ready. Skipping cron initiated process.")
