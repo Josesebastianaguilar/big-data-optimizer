@@ -113,7 +113,7 @@ async def iterate_process(process_id: str, current_user: dict = Depends(get_curr
         #     logging.error(f"There are executing processes. Please try again later")
         #     raise HTTPException(status_code=500, detail=f"There are executing processes. Please try again later")
             
-        existing_processes = await db["processes"].find({"process_id": ObjectId(process_id), "trigger_type": "user", "status": {"$ne": "in_progress"}}, {"results": 0, "metrics": 0, "errors": 0}).to_list(length=None)
+        existing_processes = await db["processes"].find({"process_id": ObjectId(process_id), "trigger_type": "user"}, {"results": 0, "metrics": 0, "errors": 0}).to_list(length=None)
         if len(existing_processes) == 0:
             logging.error(f"Processes not found for the given process_id: {process_id}")
             raise HTTPException(status_code=400, detail="Processes not found for the given process_id. Not possible to iterate.")
