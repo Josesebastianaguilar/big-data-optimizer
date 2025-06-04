@@ -28,13 +28,13 @@ def start_cron_jobs():
     Start all cron jobs.
     """
     # Add a cron job to run every day at midnight
-    for hour in PROCESSING_HOURS:
-        scheduler.add_job(
-            enqueue_prepare_cron_processes_job,
-            CronTrigger(hour=hour, minute=0),  # Run every day at the specified hour
-            id=f"prepare_cron_initiated_process_{hour}",  # Unique ID for the job
-            replace_existing=True,
-        )
+    # for hour in PROCESSING_HOURS:
+    #     scheduler.add_job(
+    #         enqueue_prepare_cron_processes_job,
+    #         CronTrigger(hour=hour, minute=0),
+    #         id=f"prepare_cron_initiated_process_{hour}",
+    #         replace_existing=True,
+    #     )
     
     # for hour in VALIDATION_HOURS:
     #     scheduler.add_job(
