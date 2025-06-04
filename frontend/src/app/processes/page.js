@@ -37,74 +37,88 @@ export default function ProcessesListPage() {
   const averageCpu = arr => arr.length <= 1 ? 0 : +(arr.slice(1).reduce((a, b) => a + b, 0) / (arr.length - 1)).toFixed(2);
 
   const exportToExcel = async () => {
-    if (!processes.length) return;
-
-    const allProcesses = [];
-    const batchSize = 100;
-    const repositoryId = repository?._id?.$oid;
-
-    // Fetch all processes in batches
-    for (let page = 1; allProcesses.length < totalItems; page++) {
-      const response = await api.get(
-        `/processes/${repositoryId}?page=${page}&limit=${batchSize}&status=completed&select=process_id+trigger_type+task_process+actions+status+duration+input_data_size+metrics+output_data_size+errors+validated+valid+created_at+updated_at+iteration+repository_version+optimized`
-      );
-      allProcesses.push(...response.data.items);
-      if (response.data.items.length < batchSize) break; // No more items
-    }
-
-    // Group by process_id
-    const grouped = {};
-    allProcesses.sort((a, b) => a.optimized - b.optimized).forEach(proc => {
-      const pid = proc.process_id.$oid;
-      if (!grouped[pid]) grouped[pid] = [];
-      grouped[pid].push(proc);
-    });
-
-    const wb = XLSX.utils.book_new();
-
-    const cleanRow = row =>
-      Object.fromEntries(
-        Object.entries(row).map(([k, v]) => [
-          k,
-          (v === undefined || v === null || Number.isNaN(v)) ? "" : v
-        ])
-      );
-
-    Object.entries(grouped).forEach(([process_id, procs]) => {
-      const wsData = procs.map(proc => {
-        const metrics = proc.metrics || [];
-        const avgCpu = process.env.NEXT_PUBLIC_USES_CGROUP_CPU_MEASUREMENT ? averageCpu(metrics.map(m => m.cpu)) : average(metrics.map(m => m.cpu));
-        const avgMem = average(metrics.map(m => m.memory));
-        return cleanRow({
-          optimized: proc.optimized ? "Yes" : "No",
-          trigger_type: proc.trigger_type,
-          avg_cpu: +Number(avgCpu).toFixed(2),
-          avg_memory: +Number(avgMem).toFixed(2),
-          duration: +Number(proc.duration),
-          created_at: new Date(proc.created_at.$date).toDateString(),
-          updated_at: new Date(proc.updated_at.$date).toDateString(),
-          errors: proc.errors ||  "No errors",
-          validated: proc.validated ? "Yes" : "No",
-          valid: proc.valid ? "Yes" : "No",
-          actions: proc.actions ? proc.actions.join(", ") : "",
-          iteration: proc.iteration,
-          task_process: proc.task_process,
-          status: proc.status,
-          input_data_size: Number(proc.input_data_size),
-          output_data_size: Number(proc.output_data_size),
-        });
+    try {
+      if (!processes.length) return;
+  
+      const allProcesses = [];
+      const batchSize = 100;
+      const repositoryId = repository?._id?.$oid;
+  
+      // Fetch all processes in batches
+      for (let page = 1; allProcesses.length < totalItems; page++) {
+        const response = await api.get(
+          `/processes/${repositoryId}?page=${page}&limit=${batchSize}&status=completed&select=process_id+trigger_type+task_process+actions+status+duration+input_data_size+metrics+output_data_size+errors+validated+valid+created_at+updated_at+iteration+repository_version+optimized+parameters`
+        );
+        allProcesses.push(...response.data.items);
+        if (response.data.items.length < batchSize) break; // No more items
+      }
+  
+      // Group by process_id
+      const grouped = {};
+      allProcesses.sort((a, b) => a.optimized - b.optimized).forEach(proc => {
+        const pid = proc.process_id.$oid;
+        if (!grouped[pid]) grouped[pid] = [];
+        grouped[pid].push(proc);
       });
-
-      // Set column order and headers
-      const headers = [
-        "optimized", "trigger_type", "created_at", "updated_at", "errors", "validated", "valid", "task_process", "status",
-        "actions", "iteration", "avg_cpu", "avg_memory", "duration",  "input_data_size", "output_data_size"
-      ];
-      const ws = XLSX.utils.json_to_sheet(wsData, { header: headers });
-      XLSX.utils.book_append_sheet(wb, ws, process_id);
-    });
-
-    XLSX.writeFile(wb, `processes_export_${repository?.name || '-'}.xlsx`);
+  
+      const wb = XLSX.utils.book_new();
+      let sheetCount = 0;
+  
+      const cleanRow = row =>
+        Object.fromEntries(
+          Object.entries(row).map(([k, v]) => [
+            k,
+            (v === undefined || v === null || Number.isNaN(v)) ? "" : v
+          ])
+        );
+  
+      Object.entries(grouped).forEach(([process_id, procs]) => {
+        const wsData = procs.map(proc => {
+          const metrics = proc.metrics || [];
+          const avgCpu = process.env.NEXT_PUBLIC_USES_CGROUP_CPU_MEASUREMENT ? averageCpu(metrics.map(m => m.cpu)) : average(metrics.map(m => m.cpu));
+          const avgMem = average(metrics.map(m => m.memory));
+          return cleanRow({
+            optimized: proc.optimized ? "Yes" : "No",
+            trigger_type: proc.trigger_type,
+            parameters: proc.parameters?.length,
+            avg_cpu: +Number(avgCpu).toFixed(2),
+            avg_memory: +Number(avgMem).toFixed(2),
+            duration: +Number(proc.duration),
+            created_at: new Date(proc.created_at.$date).toDateString(),
+            updated_at: new Date(proc.updated_at.$date).toDateString(),
+            errors: proc.errors ||  "No errors",
+            validated: proc.validated ? "Yes" : "No",
+            valid: proc.valid ? "Yes" : "No",
+            actions: proc.actions ? proc.actions.join(", ") : "",
+            iteration: proc.iteration,
+            task_process: proc.task_process,
+            status: proc.status,
+            input_data_size: Number(proc.input_data_size),
+            output_data_size: Number(proc.output_data_size),
+          });
+        });
+  
+        // Set column order and headers
+        if (wsData.length > 0) {
+          sheetCount++;
+          const headers = [
+            "optimized", "trigger_type", "parameters", "created_at", "updated_at", "errors", "validated", "valid", "task_process", "status",
+            "actions", "iteration", "avg_cpu", "avg_memory", "duration",  "input_data_size", "output_data_size"
+          ];
+          const ws = XLSX.utils.json_to_sheet(wsData, { header: headers });
+          XLSX.utils.book_append_sheet(wb, ws, process_id);
+        }
+      });
+  
+      if (sheetCount === 0) {
+        showSnackbar("No processes to export", "warning", false, "bottom-right");
+        return;
+      }
+  
+      XLSX.writeFile(wb, `processes_export_${repository?.name || '-'}.xlsx`);
+    } catch (error) {
+      showSnackbar("Error exporting processes to Excel", "error", false, "bottom-right");
+    }
   };
 
   const cancelDelete = () => {
