@@ -273,7 +273,7 @@ export default function ProcessShowView() {
           </div>}
 
           {/* Metrics Charts */}
-          {processItem.metrics.length && (
+          {processItem.metrics?.length > 0 && (
             <div className="mb-8">
               <h3 className="text-lg font-bold mb-2">Metrics</h3>
               {lineChartData && <div className="mb-4 bg-gray-50 rounded p-4">
