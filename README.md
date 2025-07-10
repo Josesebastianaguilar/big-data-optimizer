@@ -2,11 +2,10 @@
 
 ## Overview
 
-This project is a high-performance, scalable system designed to process large-scale public datasets (up to 50 million records) using three distinct processing methods:
+This project is a high-performance, scalable system designed to process large-scale public datasets (up to 50 million records) using two distinct processing methods:
 
 1. **Basic Processing** – Straightforward linear processing.
 2. **Optimized Processing** – Enhanced performance using techniques like batching and parallelism.
-3. **AI/Smart Optimization** – Context-aware, adaptive processing based on intelligent rules or ML.
 
 ### 🎯 Goals
 
